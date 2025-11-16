@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+, "../../Desktop/TDS200_h25_0/DugnadHub/utils/postData.ts"  ]
 }
