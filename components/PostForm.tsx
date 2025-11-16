@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import SelectImageModal from "./SelectImageModal";
 
-export default function PostForm() {
+export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -31,35 +31,32 @@ export default function PostForm() {
 
   return (
     <View style={styles.container}>
-      {/* modal for å velge eller ta bilde */}
+      {/* Modal for å velge bilde */}
       <Modal visible={isCameraOpen} animationType="slide">
         <SelectImageModal
-          closeModal={() => {
-            setIsCameraOpen(false);
-          }}
+          closeModal={() => setIsCameraOpen(false)}
           setImage={setImage}
         />
       </Modal>
+
+      {/* BILDE */}
       <Pressable
         accessible={true}
-        accessibilityLabel="Add image to post"
-        accessibilityHint="Pick an image from the library or take a new picture"
-        onPress={() => setIsCameraOpen(true)} // åpner kamera eller galleri
+        accessibilityLabel="Legg til bilde"
+        onPress={() => setIsCameraOpen(true)}
         style={styles.addImageBox}
       >
         {image ? (
-          // viser valgt bilde
           <Image
             source={{ uri: image }}
             style={{ resizeMode: "cover", width: "100%", height: 300 }}
-            alt=""
           />
         ) : (
-          // ikon for å indikere at et bilde kan legges til
           <EvilIcons name="image" size={80} color="gray" />
         )}
       </Pressable>
 
+      {/* INPUT FELT */}
       <TextInput
         style={styles.input}
         placeholder="Tittel"
@@ -73,7 +70,6 @@ export default function PostForm() {
         value={description}
         onChangeText={setDescription}
         multiline
-        numberOfLines={3}
       />
 
       <TextInput
@@ -90,6 +86,7 @@ export default function PostForm() {
         onChangeText={setVolunteerLimit}
       />
 
+      {/* DATO */}
       <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
         <EvilIcons name="calendar" size={28} color="gray" />
         <Text style={{ marginLeft: 8 }}>{date.toLocaleString()}</Text>
@@ -103,6 +100,23 @@ export default function PostForm() {
           onChange={onChange}
         />
       )}
+
+      {/* LAGRE KNAPP */}
+      <Pressable
+        style={styles.saveButton}
+        onPress={() =>
+          onSave({
+            title,
+            description,
+            task,
+            volunteerLimit,
+            date: date.toISOString(),
+            image,
+          })
+        }
+      >
+        <Text style={styles.saveButtonText}>Lagre</Text>
+      </Pressable>
     </View>
   );
 }
@@ -137,5 +151,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
+  },
+  saveButton: {
+    backgroundColor: "#4A90E2",
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
