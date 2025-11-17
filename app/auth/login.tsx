@@ -22,11 +22,18 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     try {
       setError("");
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
+      // Prøv å logge inn i Firebase
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Innlogging OK:", cred.user.uid);
+  
+      // Når innlogging er vellykket → gå til hoved-appen (tabs)
+      router.replace("/");
+    } catch (err: any) {
+      console.log("Login error:", err?.code || err);
       setError("Feil e-post eller passord");
     }
   };
+  
 
   return (
     <KeyboardAvoidingView
