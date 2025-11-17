@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/firebase";
+import { useAuth } from "@/hooks/useAuth";
+
 import {
   Image,
   Pressable,
@@ -10,16 +12,17 @@ import {
   Text,
   ActivityIndicator,
   View,
+  Alert,
 } from "react-native";
 
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [dugnad, setDugnad] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 Hent dugnad fra Firestore basert på ID
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
@@ -39,6 +42,24 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Slett dugnad",
+      "Er du sikker på at du vil slette denne dugnaden?",
+      [
+        { text: "Avbryt", style: "cancel" },
+        {
+          text: "Slett",
+          style: "destructive",
+          onPress: async () => {
+            await deleteDoc(doc(db, "dugnader", id as string));
+            router.replace("/(app)/(tabs)");
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -55,20 +76,24 @@ export default function DugnadsDetaljer() {
     );
   }
 
+  const isOwner = dugnad.createdByUID === user?.uid;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* TILBAKEKNAPP */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{"< Tilbake"}</Text>
       </Pressable>
 
-      {/* BILDE */}
       {dugnad.image && (
         <Image source={{ uri: dugnad.image }} style={styles.image} />
       )}
 
-      {/* TEKSTINFO */}
       <Text style={styles.title}>{dugnad.title}</Text>
+
+      {/* Opprettet av */}
+      <Text style={styles.createdBy}>
+        Opprettet av: {dugnad.createdByUsername}
+      </Text>
 
       <Text style={styles.sectionLabel}>Beskrivelse</Text>
       <Text style={styles.text}>{dugnad.description}</Text>
@@ -80,9 +105,13 @@ export default function DugnadsDetaljer() {
       <Text style={styles.text}>{dugnad.volunteerLimit}</Text>
 
       <Text style={styles.sectionLabel}>Dato og tid</Text>
-      <Text style={styles.text}>
-        {new Date(dugnad.date).toLocaleString()}
-      </Text>
+      <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
+
+      {isOwner && (
+        <Pressable style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -115,7 +144,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  createdBy: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 12,
   },
   sectionLabel: {
     fontSize: 18,
@@ -128,4 +162,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#333",
   },
+  deleteButton: {
+    marginTop: 25,
+    backgroundColor: "#E74C3C",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  deleteText: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "600",
+  },
 });
+

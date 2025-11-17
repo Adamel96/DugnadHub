@@ -11,12 +11,22 @@ import {
   View,
 } from "react-native";
 import SelectImageModal from "./SelectImageModal";
+
 import { db } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  doc,
+  getDoc,
+} from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
+  const { user } = useAuth(); // 🔥 Vi har kun user, ikke profil
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [task, setTask] = useState("");
@@ -30,6 +40,17 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
   };
 
   const handleSave = async () => {
+    if (!user) {
+      console.log("❌ Ingen innlogget bruker.");
+      return;
+    }
+
+    // 🔥 Hent brukernavn fra Firestore
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+    const username = snap.exists() ? snap.data().username : "Ukjent bruker";
+
+    // 🔥 Dette lagres i Firestore
     const docData = {
       title,
       description,
@@ -38,16 +59,20 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
       date: date.toISOString(),
       image,
       createdAt: serverTimestamp(),
+
+      // viktig info
+      createdByUID: user.uid,
+      createdByEmail: user.email,
+      createdByUsername: username,
     };
 
     await addDoc(collection(db, "dugnader"), docData);
-
-    onSave(); // lukker modalen i HomeScreen
+    onSave(); // lukk modal
   };
 
   return (
     <View style={styles.container}>
-      {/* Modal for å velge bilde */}
+      {/* Bildevelger */}
       <Modal visible={isCameraOpen} animationType="slide">
         <SelectImageModal
           closeModal={() => setIsCameraOpen(false)}
@@ -55,11 +80,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         />
       </Modal>
 
-      {/* BILDE */}
-      <Pressable
-        onPress={() => setIsCameraOpen(true)}
-        style={styles.addImageBox}
-      >
+      <Pressable onPress={() => setIsCameraOpen(true)} style={styles.addImageBox}>
         {image ? (
           <Image source={{ uri: image }} style={styles.previewImage} />
         ) : (
@@ -67,7 +88,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         )}
       </Pressable>
 
-      {/* INPUTS */}
+      {/* Inputs */}
       <TextInput
         style={styles.input}
         placeholder="Tittel"
@@ -98,22 +119,17 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         onChangeText={setVolunteerLimit}
       />
 
-      {/* DATO */}
+      {/* Dato */}
       <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
         <EvilIcons name="calendar" size={28} color="gray" />
         <Text style={{ marginLeft: 8 }}>{date.toLocaleString()}</Text>
       </Pressable>
 
       {showPicker && (
-        <DateTimePicker
-          value={date}
-          mode="datetime"
-          display="default"
-          onChange={onChange}
-        />
+        <DateTimePicker value={date} mode="datetime" onChange={onChange} />
       )}
 
-      {/* LAGRE */}
+      {/* Lagre */}
       <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Lagre</Text>
       </Pressable>
@@ -168,4 +184,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
