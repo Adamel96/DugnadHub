@@ -64,6 +64,9 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
       createdByUID: user.uid,
       createdByEmail: user.email,
       createdByUsername: username,
+
+      participants: [],
+
     };
 
     await addDoc(collection(db, "dugnader"), docData);
