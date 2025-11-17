@@ -1,11 +1,59 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  ActivityIndicator,
+  View,
+} from "react-native";
 
 export default function DugnadsDetaljer() {
-  const { data } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const dugnad = JSON.parse(data as string);
+  const [dugnad, setDugnad] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 🔥 Hent dugnad fra Firestore basert på ID
+  useEffect(() => {
+    const fetchDugnad = async () => {
+      try {
+        const ref = doc(db, "dugnader", id as string);
+        const snapshot = await getDoc(ref);
+
+        if (snapshot.exists()) {
+          setDugnad(snapshot.data());
+        }
+      } catch (err) {
+        console.log("Feil ved henting av dugnad:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDugnad();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#4A90E2" />
+      </View>
+    );
+  }
+
+  if (!dugnad) {
+    return (
+      <View style={styles.loaderContainer}>
+        <Text>Kunne ikke finne dugnaden.</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -15,9 +63,9 @@ export default function DugnadsDetaljer() {
       </Pressable>
 
       {/* BILDE */}
-      {dugnad.image ? (
+      {dugnad.image && (
         <Image source={{ uri: dugnad.image }} style={styles.image} />
-      ) : null}
+      )}
 
       {/* TEKSTINFO */}
       <Text style={styles.title}>{dugnad.title}</Text>
@@ -32,12 +80,20 @@ export default function DugnadsDetaljer() {
       <Text style={styles.text}>{dugnad.volunteerLimit}</Text>
 
       <Text style={styles.sectionLabel}>Dato og tid</Text>
-      <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
+      <Text style={styles.text}>
+        {new Date(dugnad.date).toLocaleString()}
+      </Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 100,
+  },
   container: {
     padding: 20,
     paddingTop: 10,

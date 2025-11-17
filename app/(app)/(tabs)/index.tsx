@@ -1,7 +1,6 @@
-import PostForm from "@/components/PostForm";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   TouchableOpacity,
@@ -11,10 +10,30 @@ import {
   View,
 } from "react-native";
 
+import PostForm from "@/components/PostForm";
+import { db } from "@/firebase";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+
 export default function HomeScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const router = useRouter();
+
+  // 🔥 Hent alle dugnader live fra Firestore
+  useEffect(() => {
+    const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setPosts(list);
+    });
+
+    return unsubscribe;
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
@@ -40,8 +59,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalContent}>
           <PostForm
-            onSave={(postData) => {
-              setPosts((prev) => [...prev, postData]);
+            onSave={() => {
               setIsModalOpen(false);
             }}
           />
@@ -55,20 +73,17 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* LISTE MED POSTER */}
+      {/* LISTE MED DUGNADER */}
       <ScrollView contentContainerStyle={styles.postList}>
-        {posts.map((post, index) => (
+        {posts.map((post) => (
           <TouchableOpacity
-            key={index}
+            key={post.id}
             style={styles.card}
             activeOpacity={0.7}
             onPress={() =>
               router.push({
                 pathname: "/dugnad/[id]",
-                params: {
-                  id: index.toString(),
-                  data: JSON.stringify(post),
-                },
+                params: { id: post.id },
               })
             }
           >
@@ -89,7 +104,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              {/* PIL SOM VISER AT DEN ER TRYKKBAR */}
+              {/* PIL */}
               <Text style={styles.arrow}>{">"}</Text>
             </View>
           </TouchableOpacity>
@@ -103,7 +118,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     padding: 20,
-    marginTop: 50 
+    marginTop: 50,
   },
   postList: {
     padding: 16,

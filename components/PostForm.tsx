@@ -11,8 +11,10 @@ import {
   View,
 } from "react-native";
 import SelectImageModal from "./SelectImageModal";
+import { db } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
+export default function PostForm({ onSave }: { onSave: () => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -22,11 +24,25 @@ export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
-  const onChange = (event: any, selectedDate?: Date) => {
+  const onChange = (_event: any, selectedDate?: Date) => {
     setShowPicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+    if (selectedDate) setDate(selectedDate);
+  };
+
+  const handleSave = async () => {
+    const docData = {
+      title,
+      description,
+      task,
+      volunteerLimit: Number(volunteerLimit),
+      date: date.toISOString(),
+      image,
+      createdAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(db, "dugnader"), docData);
+
+    onSave(); // lukker modalen i HomeScreen
   };
 
   return (
@@ -41,22 +57,17 @@ export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
 
       {/* BILDE */}
       <Pressable
-        accessible={true}
-        accessibilityLabel="Legg til bilde"
         onPress={() => setIsCameraOpen(true)}
         style={styles.addImageBox}
       >
         {image ? (
-          <Image
-            source={{ uri: image }}
-            style={{ resizeMode: "cover", width: "100%", height: 300 }}
-          />
+          <Image source={{ uri: image }} style={styles.previewImage} />
         ) : (
           <EvilIcons name="image" size={80} color="gray" />
         )}
       </Pressable>
 
-      {/* INPUT FELT */}
+      {/* INPUTS */}
       <TextInput
         style={styles.input}
         placeholder="Tittel"
@@ -82,6 +93,7 @@ export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
       <TextInput
         style={styles.input}
         placeholder="Antall frivillige"
+        keyboardType="numeric"
         value={volunteerLimit}
         onChangeText={setVolunteerLimit}
       />
@@ -101,20 +113,8 @@ export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
         />
       )}
 
-      {/* LAGRE KNAPP */}
-      <Pressable
-        style={styles.saveButton}
-        onPress={() =>
-          onSave({
-            title,
-            description,
-            task,
-            volunteerLimit,
-            date: date.toISOString(),
-            image,
-          })
-        }
-      >
+      {/* LAGRE */}
+      <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Lagre</Text>
       </Pressable>
     </View>
@@ -122,9 +122,7 @@ export default function PostForm({ onSave }: { onSave: (data: any) => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-  },
+  container: { width: "100%" },
   addImageBox: {
     borderRadius: 10,
     overflow: "hidden",
@@ -135,6 +133,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "gray",
     marginBottom: 12,
+  },
+  previewImage: {
+    resizeMode: "cover",
+    width: "100%",
+    height: 300,
   },
   input: {
     borderWidth: 1,
@@ -165,3 +168,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
