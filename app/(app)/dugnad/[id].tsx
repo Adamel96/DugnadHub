@@ -1,12 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text } from "react-native";
 
 export default function DugnadsDetaljer() {
   const { data } = useLocalSearchParams();
@@ -47,7 +40,7 @@ export default function DugnadsDetaljer() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    paddingTop: 50,
+    paddingTop: 10,
   },
   backButton: {
     marginBottom: 20,
@@ -66,7 +59,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 2,
   },
   sectionLabel: {
     fontSize: 18,
