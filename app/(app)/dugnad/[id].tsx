@@ -1,6 +1,13 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -25,6 +32,7 @@ export default function DugnadsDetaljer() {
   const [loading, setLoading] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
 
+  // 🔥 Hent dugnad fra Firestore
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
@@ -32,7 +40,14 @@ export default function DugnadsDetaljer() {
         const snapshot = await getDoc(ref);
 
         if (snapshot.exists()) {
-          setDugnad(snapshot.data());
+          const data = snapshot.data();
+
+          // sørg for at participants alltid er et array
+          if (!data.participants) {
+            data.participants = [];
+          }
+
+          setDugnad(data);
         }
       } catch (err) {
         console.log("Feil ved henting av dugnad:", err);
@@ -44,6 +59,7 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
+  // 🔥 MELD PÅ
   const handleJoin = async () => {
     if (!user || !dugnad) return;
 
@@ -55,10 +71,11 @@ export default function DugnadsDetaljer() {
 
     setDugnad({
       ...dugnad,
-      participants: [...dugnad.participants, user.uid],
+      participants: [...(dugnad.participants || []), user.uid],
     });
   };
 
+  // 🔥 MELD AV
   const handleLeave = async () => {
     if (!user || !dugnad) return;
 
@@ -70,8 +87,32 @@ export default function DugnadsDetaljer() {
 
     setDugnad({
       ...dugnad,
-      participants: dugnad.participants.filter((uid: string) => uid !== user.uid),
+      participants: (dugnad.participants || []).filter(
+        (uid: string) => uid !== user.uid
+      ),
     });
+  };
+
+  // 🔥 SLETT DUGNAD (kun eier)
+  const handleDelete = () => {
+    if (!user || !dugnad) return;
+    if (dugnad.createdByUID !== user.uid) return;
+
+    Alert.alert(
+      "Slett dugnad",
+      "Er du sikker på at du vil slette denne dugnaden?",
+      [
+        { text: "Avbryt", style: "cancel" },
+        {
+          text: "Slett",
+          style: "destructive",
+          onPress: async () => {
+            await deleteDoc(doc(db, "dugnader", id as string));
+            router.replace("/(app)/(tabs)");
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -91,29 +132,35 @@ export default function DugnadsDetaljer() {
   }
 
   const isOwner = dugnad.createdByUID === user?.uid;
-  const isParticipant = dugnad.participants?.includes(user?.uid);
+  const isParticipant = (dugnad.participants || []).includes(user?.uid);
+  const participantCount = dugnad.participants?.length ?? 0;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* Tilbake */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{"< Tilbake"}</Text>
       </Pressable>
 
+      {/* Bilde */}
       {dugnad.image && (
         <Image source={{ uri: dugnad.image }} style={styles.image} />
       )}
 
+      {/* Tittel + opprettet av */}
       <Text style={styles.title}>{dugnad.title}</Text>
-      <Text style={styles.createdBy}>Opprettet av: {dugnad.createdByUsername}</Text>
+      <Text style={styles.createdBy}>
+        Opprettet av: {dugnad.createdByUsername}
+      </Text>
 
       {/* Påmeldingsinfo */}
       <Pressable onPress={() => setShowParticipants(true)}>
         <Text style={styles.participantsText}>
-          👥 {dugnad.participants?.length ?? 0} / {dugnad.volunteerLimit} påmeldt
+          👥 {participantCount} / {dugnad.volunteerLimit} påmeldt
         </Text>
       </Pressable>
 
-      {/* MELD PÅ / MELD AV */}
+      {/* MELD PÅ / MELD AV – eier kan ikke melde seg på sin egen dugnad (kan endres om du vil) */}
       {!isOwner && (
         <Pressable
           style={isParticipant ? styles.leaveButton : styles.joinButton}
@@ -125,6 +172,7 @@ export default function DugnadsDetaljer() {
         </Pressable>
       )}
 
+      {/* Beskrivelse osv. */}
       <Text style={styles.sectionLabel}>Beskrivelse</Text>
       <Text style={styles.text}>{dugnad.description}</Text>
 
@@ -134,13 +182,20 @@ export default function DugnadsDetaljer() {
       <Text style={styles.sectionLabel}>Dato og tid</Text>
       <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
 
-      {/* Popup med påmeldte */}
+      {/* 🔥 SLETT-KNAPP KUN FOR EIER */}
+      {isOwner && (
+        <Pressable style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
+        </Pressable>
+      )}
+
+      {/* Popup med påmeldte (foreløpig bare UID-er – kan utvides til brukernavn senere) */}
       <Modal visible={showParticipants} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.participantModal}>
             <Text style={styles.modalTitle}>Påmeldte</Text>
 
-            {dugnad.participants?.length > 0 ? (
+            {participantCount > 0 ? (
               dugnad.participants.map((uid: string) => (
                 <Text key={uid} style={styles.participantName}>
                   • {uid}
@@ -164,28 +219,44 @@ export default function DugnadsDetaljer() {
 }
 
 const styles = StyleSheet.create({
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 20 },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 100,
+  },
+  container: {
+    padding: 20,
+    paddingTop: 10,
+  },
   backButton: { marginBottom: 20 },
-  backText: { fontSize: 18, color: "#007AFF", fontWeight: "500" },
-
+  backText: {
+    fontSize: 18,
+    color: "#007AFF",
+    fontWeight: "500",
+  },
   image: {
     width: "100%",
     height: 250,
     borderRadius: 12,
     marginBottom: 16,
   },
-
-  title: { fontSize: 26, fontWeight: "bold" },
-  createdBy: { marginBottom: 10, color: "#666" },
-
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  createdBy: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 8,
+  },
   participantsText: {
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     fontWeight: "500",
     color: "#333",
   },
-
   joinButton: {
     backgroundColor: "#2ECC71",
     padding: 12,
@@ -194,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   leaveButton: {
-    backgroundColor: "#E74C3C",
+    backgroundColor: "#E67E22",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
@@ -205,10 +276,29 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
   },
-
-  sectionLabel: { fontSize: 18, fontWeight: "600", marginTop: 16 },
-  text: { fontSize: 16, marginTop: 4 },
-
+  sectionLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 14,
+    marginBottom: 4,
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#333",
+  },
+  deleteButton: {
+    marginTop: 25,
+    backgroundColor: "#E74C3C",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  deleteText: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -232,4 +322,3 @@ const styles = StyleSheet.create({
   },
   closeModalText: { color: "white", fontWeight: "600" },
 });
-
