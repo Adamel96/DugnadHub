@@ -103,7 +103,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 20,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 42,
     fontWeight: "bold",
-    color: "#FFA726",
+    color: "#4A90E2",
     marginBottom: 40,
     letterSpacing: 1.5,
   },
@@ -120,16 +120,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    backgroundColor: "#1c1c1c",
+    backgroundColor: "white",
     padding: 14,
     borderRadius: 10,
     marginBottom: 12,
-    color: "white",
+    color: "#4A90E2",
     borderWidth: 1,
     borderColor: "#333",
   },
   registerButton: {
-    backgroundColor: "#FFA726",
+    backgroundColor: "#4A90E2",
     paddingVertical: 14,
     borderRadius: 10,
     width: "100%",
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   registerButtonText: {
-    color: "black",
+    color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
   loginLink: {
-    color: "#FFA726",
+    color: "#4A90E2",
     fontSize: 16,
   },
   errorText: {
