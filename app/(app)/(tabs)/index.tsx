@@ -1,10 +1,10 @@
 import PostForm from "@/components/PostForm";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Modal,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +14,7 @@ import {
 export default function HomeScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
+  const router = useRouter();
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
@@ -21,12 +22,12 @@ export default function HomeScreen() {
         options={{
           title: "Hjem",
           headerRight: () => (
-            <Pressable
+            <TouchableOpacity
               style={{ paddingRight: 16 }}
               onPress={() => setIsModalOpen(true)}
             >
               <AntDesign name="plus-square" size={24} />
-            </Pressable>
+            </TouchableOpacity>
           ),
         }}
       />
@@ -45,33 +46,53 @@ export default function HomeScreen() {
             }}
           />
 
-          <Pressable
+          <TouchableOpacity
             onPress={() => setIsModalOpen(false)}
             style={{ marginTop: 15 }}
           >
             <Text style={{ color: "#412E25" }}>Avbryt</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </Modal>
 
       {/* LISTE MED POSTER */}
       <ScrollView contentContainerStyle={styles.postList}>
         {posts.map((post, index) => (
-          <View key={index} style={styles.card}>
+          <TouchableOpacity
+            key={index}
+            style={styles.card}
+            activeOpacity={0.7}
+            onPress={() =>
+              router.push({
+                pathname: "/dugnad/[id]",
+                params: {
+                  id: index.toString(),
+                  data: JSON.stringify(post),
+                },
+              })
+            }
+          >
             {post.image && (
               <View style={{ marginBottom: 10 }}>
                 <Text style={{ fontWeight: "bold" }}>📸 Bilde lastet opp</Text>
               </View>
             )}
 
-            <Text style={styles.title}>{post.title}</Text>
-            <Text>{post.description}</Text>
-            <Text>Oppgave: {post.task}</Text>
-            <Text>Antall frivillige: {post.volunteerLimit}</Text>
-            <Text style={{ marginTop: 6, color: "#777" }}>
-              Dato: {new Date(post.date).toLocaleString()}
-            </Text>
-          </View>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{post.title}</Text>
+                <Text>{post.description}</Text>
+                <Text>Oppgave: {post.task}</Text>
+                <Text>Antall frivillige: {post.volunteerLimit}</Text>
+                <Text style={{ marginTop: 6, color: "#777" }}>
+                  Dato: {new Date(post.date).toLocaleString()}
+                </Text>
+              </View>
+
+              {/* PIL SOM VISER AT DEN ER TRYKKBAR */}
+              <Text style={styles.arrow}>{">"}</Text>
+            </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
@@ -82,6 +103,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     padding: 20,
+    marginTop: 50 
   },
   postList: {
     padding: 16,
@@ -98,5 +120,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
+  },
+  arrow: {
+    fontSize: 26,
+    color: "#888",
+    marginLeft: 12,
   },
 });
