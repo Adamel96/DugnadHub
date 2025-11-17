@@ -3,11 +3,12 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Modal,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 
 import PostForm from "@/components/PostForm";
@@ -19,7 +20,6 @@ export default function HomeScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const router = useRouter();
 
-  // 🔥 Hent alle dugnader live fra Firestore
   useEffect(() => {
     const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
 
@@ -36,109 +36,276 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: "Hjem",
+          headerStyle: {
+            backgroundColor: "#fff",
+          },
+          headerShadowVisible: true,
+          headerTitleStyle: {
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "#2C3E50",
+          },
           headerRight: () => (
             <TouchableOpacity
-              style={{ paddingRight: 16 }}
+              style={styles.addButton}
               onPress={() => setIsModalOpen(true)}
             >
-              <AntDesign name="plus-square" size={24} />
+              <AntDesign name="plus" size={28} color="#4A90E2" />
             </TouchableOpacity>
           ),
         }}
       />
 
-      {/* MODAL */}
       <Modal
         visible={isModalOpen}
         animationType="slide"
         onRequestClose={() => setIsModalOpen(false)}
       >
         <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Opprett dugnad</Text>
+            <TouchableOpacity onPress={() => setIsModalOpen(false)}>
+              <AntDesign name="close" size={28} color="#7F8C8D" />
+            </TouchableOpacity>
+          </View>
+
           <PostForm
             onSave={() => {
               setIsModalOpen(false);
             }}
           />
-
-          <TouchableOpacity
-            onPress={() => setIsModalOpen(false)}
-            style={{ marginTop: 15 }}
-          >
-            <Text style={{ color: "#412E25" }}>Avbryt</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
 
-      {/* LISTE MED DUGNADER */}
-      <ScrollView contentContainerStyle={styles.postList}>
-        {posts.map((post) => (
-          <TouchableOpacity
-            key={post.id}
-            style={styles.card}
-            activeOpacity={0.7}
-            onPress={() =>
-              router.push({
-                pathname: "/dugnad/[id]",
-                params: { id: post.id },
-              })
-            }
-          >
-            {post.image && (
-              <View style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: "bold" }}>📸 Bilde lastet opp</Text>
-              </View>
-            )}
+      <ScrollView
+        contentContainerStyle={styles.postList}
+        showsVerticalScrollIndicator={false}
+      >
+        {posts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📋</Text>
+            <Text style={styles.emptyTitle}>Ingen dugnader ennå</Text>
+            <Text style={styles.emptyText}>
+              Trykk på + for å opprette din første dugnad
+            </Text>
+          </View>
+        ) : (
+          posts.map((post) => (
+            <TouchableOpacity
+              key={post.id}
+              style={styles.card}
+              activeOpacity={0.7}
+              onPress={() =>
+                router.push({
+                  pathname: "/dugnad/[id]",
+                  params: { id: post.id },
+                })
+              }
+            >
+              {post.image && (
+                <Image
+                  source={{ uri: post.image }}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                />
+              )}
 
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title}>{post.title}</Text>
-                <Text>{post.description}</Text>
-                <Text>Oppgave: {post.task}</Text>
-                <Text>Antall frivillige: {post.volunteerLimit}</Text>
-                <Text style={{ marginTop: 6, color: "#777" }}>
-                  Dato: {new Date(post.date).toLocaleString()}
+              <View style={styles.cardHeader}>
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.title}>{post.title}</Text>
+                  <View style={styles.metaInfo}>
+                    <Text style={styles.metaText}>
+                      📅{" "}
+                      {new Date(post.date).toLocaleDateString("nb-NO", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <Text style={styles.metaDot}>•</Text>
+                    <Text style={styles.metaText}>
+                      ⏰{" "}
+                      {new Date(post.date).toLocaleTimeString("nb-NO", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
+                  </View>
+                </View>
+                <AntDesign name="right" size={20} color="#BDC3C7" />
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.description} numberOfLines={2}>
+                  {post.description}
                 </Text>
+
+                <View style={styles.detailsContainer}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailIcon}>📋</Text>
+                    <Text style={styles.detailText} numberOfLines={1}>
+                      {post.task}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailIcon}>👥</Text>
+                    <Text style={styles.detailText}>
+                      {post.volunteerLimit} frivillige
+                    </Text>
+                  </View>
+                </View>
               </View>
 
-              {/* PIL */}
-              <Text style={styles.arrow}>{">"}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>Åpen for påmelding</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  addButton: {
+    paddingRight: 16,
+    paddingLeft: 8,
+  },
   modalContent: {
-    width: "100%",
-    padding: 20,
-    marginTop: 50,
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    paddingTop: 60,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#2C3E50",
   },
   postList: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 30,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#2C3E50",
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#7F8C8D",
+    textAlign: "center",
+    lineHeight: 24,
   },
   card: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderRadius: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: "hidden",
+  },
+  cardImage: {
+    width: "100%",
+    height: 200,
+    backgroundColor: "#E3F2FD",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  cardHeaderText: {
+    flex: 1,
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#2C3E50",
     marginBottom: 4,
   },
-  arrow: {
-    fontSize: 26,
-    color: "#888",
-    marginLeft: 12,
+  metaInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  metaText: {
+    fontSize: 13,
+    color: "#7F8C8D",
+  },
+  metaDot: {
+    marginHorizontal: 8,
+    color: "#BDC3C7",
+  },
+  cardContent: {
+    padding: 16,
+  },
+  description: {
+    fontSize: 15,
+    color: "#34495E",
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  detailsContainer: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    padding: 10,
+    borderRadius: 10,
+  },
+  detailIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#2C3E50",
+    fontWeight: "500",
+    flex: 1,
+  },
+  statusBadge: {
+    backgroundColor: "#2ECC71",
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
