@@ -1,7 +1,14 @@
 import { auth, db } from "@/firebase";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -14,9 +21,14 @@ import {
 
 export default function ProfilePage() {
   const router = useRouter();
+
   const [username, setUsername] = useState("Laster...");
   const [email, setEmail] = useState("Laster...");
 
+  // 🔥 Teller dugnader
+  const [myDugnadCount, setMyDugnadCount] = useState(0);
+
+  // 🔵 Hent brukerprofil
   useEffect(() => {
     const loadUserData = async () => {
       const user = auth.currentUser;
@@ -37,6 +49,23 @@ export default function ProfilePage() {
     loadUserData();
   }, []);
 
+  // 🔵 Tell hvor mange dugnader bruker har opprettet
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const q = query(
+      collection(db, "dugnader"),
+      where("createdByUID", "==", auth.currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMyDugnadCount(snapshot.size); // snapshot.size = antall dokumenter
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // 🔵 Logout
   const handleLogout = async () => {
     await signOut(auth);
     router.replace("/auth/login");
@@ -59,15 +88,19 @@ export default function ProfilePage() {
       {/* Stats Section */}
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statNumber}>{myDugnadCount}</Text>
           <Text style={styles.statLabel}>Dugnader</Text>
         </View>
+
         <View style={styles.statDivider} />
+
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>245</Text>
           <Text style={styles.statLabel}>Følgere</Text>
         </View>
+
         <View style={styles.statDivider} />
+
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>189</Text>
           <Text style={styles.statLabel}>Følger</Text>
@@ -82,7 +115,6 @@ export default function ProfilePage() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Mine Dugnader */}
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push("/(app)/mine_dugnader")}
