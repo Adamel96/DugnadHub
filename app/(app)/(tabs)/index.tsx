@@ -2,28 +2,30 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Image,
 } from "react-native";
 
 import PostForm from "@/components/PostForm";
-import { db, auth } from "@/firebase";
+import { auth, db } from "@/firebase";
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
+  doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
-  doc,
-  getDoc,
   setDoc,
   updateDoc,
-  arrayUnion,
-  arrayRemove,
 } from "firebase/firestore";
 
 const toggleFavorite = async (dugnadId: string) => {
@@ -59,11 +61,33 @@ export default function HomeScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+
+  // pull to refresh
+
+  const loadPosts = async () => {
+    const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+
+    const list = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    setPosts(list);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadPosts();
+    setRefreshing(false);
+  };
+
+  // Posts listener
 
   useEffect(() => {
     const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -75,6 +99,8 @@ export default function HomeScreen() {
 
     return unsubscribe;
   }, []);
+
+  //  Favorite listener
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -143,6 +169,9 @@ export default function HomeScreen() {
       </Modal>
 
       <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={styles.postList}
         showsVerticalScrollIndicator={false}
       >
@@ -182,7 +211,11 @@ export default function HomeScreen() {
                 <AntDesign
                   name="heart"
                   size={24}
-                  color={favorites.includes(post.id) ? "#E74C3C" : "rgba(255, 255, 255, 0.5)"}
+                  color={
+                    favorites.includes(post.id)
+                      ? "#E74C3C"
+                      : "rgba(255, 255, 255, 0.5)"
+                  }
                 />
               </TouchableOpacity>
 
