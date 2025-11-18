@@ -25,9 +25,10 @@ export default function MineDugnaderScreen() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
+    // 🔥 riktig felt: createdByUID
     const q = query(
       collection(db, "dugnader"),
-      where("createdBy", "==", auth.currentUser.uid),
+      where("createdByUID", "==", auth.currentUser.uid),
       orderBy("createdAt", "desc")
     );
 
