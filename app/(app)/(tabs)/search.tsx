@@ -7,35 +7,28 @@ import {
   ScrollView,
   Image,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/firebase";
+import { useRouter } from "expo-router";
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"dugnader" | "personer">("dugnader");
+  const [dugnader, setDugnader] = useState<any[]>([]);
+  const router = useRouter();
 
-  const dugnader = [
-    {
-      id: 1,
-      title: "Strandrydding",
-      date: "25. Nov 2025",
-      participants: 12,
-      image: "https://via.placeholder.com/80",
-    },
-    {
-      id: 2,
-      title: "Skogplanting",
-      date: "28. Nov 2025",
-      participants: 8,
-      image: "https://via.placeholder.com/80",
-    },
-    {
-      id: 3,
-      title: "Måking for eldre",
-      date: "30. Nov 2025",
-      participants: 5,
-      image: "https://via.placeholder.com/80",
-    },
-  ];
+  useEffect(() => {
+    const q = query(collection(db, "dugnader"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setDugnader(list);
+    });
+    return unsubscribe;
+  }, []);
 
   const personer = [
     {
@@ -62,7 +55,9 @@ export default function Search() {
   ];
 
   const filteredDugnader = dugnader.filter((dugnad) =>
-    dugnad.title.toLowerCase().includes(searchQuery.toLowerCase())
+    dugnad.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    dugnad.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    dugnad.task?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredPersoner = personer.filter(
@@ -117,14 +112,33 @@ export default function Search() {
           <>
             {filteredDugnader.length > 0 ? (
               filteredDugnader.map((dugnad) => (
-                <TouchableOpacity key={dugnad.id} style={styles.dugnadCard}>
-                  <Image source={{ uri: dugnad.image }} style={styles.dugnadImage} />
+                <TouchableOpacity
+                  key={dugnad.id}
+                  style={styles.dugnadCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/dugnad/[id]",
+                      params: { id: dugnad.id },
+                    })
+                  }
+                >
+                  {dugnad.image && (
+                    <Image source={{ uri: dugnad.image }} style={styles.dugnadImage} />
+                  )}
                   <View style={styles.dugnadInfo}>
                     <Text style={styles.dugnadTitle}>{dugnad.title}</Text>
                     <View style={styles.dugnadMeta}>
-                      <Text style={styles.dugnadDate}>📅 {dugnad.date}</Text>
+                      <Text style={styles.dugnadDate}>
+                        📅{" "}
+                        {dugnad.date
+                          ? new Date(dugnad.date).toLocaleDateString("nb-NO", {
+                              day: "numeric",
+                              month: "short",
+                            })
+                          : "Ikke satt"}
+                      </Text>
                       <Text style={styles.dugnadParticipants}>
-                        👥 {dugnad.participants} påmeldte
+                        👥 {dugnad.volunteerLimit || 0} plasser
                       </Text>
                     </View>
                   </View>
