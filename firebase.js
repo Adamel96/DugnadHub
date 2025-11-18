@@ -10,6 +10,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+
+GoogleSignin.configure({
+  webClientId: "520017838610-domr1fpg6le07e4hku5bmvafogahts1s.apps.googleusercontent.com",
+});
+
+
 // Firebase config (bruk din eksisterende)
 const firebaseConfig = {
   apiKey: "AIzaSyA81IIHcX6ZCONRAifIj1ESpCwfjS5ZB8w",

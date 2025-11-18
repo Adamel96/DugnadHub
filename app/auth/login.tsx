@@ -10,8 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "@/firebase";
+
+import {
+  GoogleSignin,
+  isSuccessResponse,
+} from "@react-native-google-signin/google-signin";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,21 +24,52 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  // ----------------------------
+  // 🔥 GOOGLE LOGIN FUNKSJON
+  // ----------------------------
+  const signInWithGoogle = async () => {
+    try {
+      // sjekk at Google Play Services finnes
+      await GoogleSignin.hasPlayServices();
+
+      // start google login
+      const response = await GoogleSignin.signIn();
+
+      if (isSuccessResponse(response)) {
+        // hent idToken — NB! MÅ gjøres slik i Expo
+        const { idToken } = await GoogleSignin.getTokens();
+
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+
+        // Logg inn i Firebase
+        await signInWithCredential(auth, googleCredential);
+
+        console.log("Google login OK");
+
+        router.replace("/");
+      }
+    } catch (error) {
+      console.log("Error signing in with google:", error);
+      setError("Google-innlogging feilet");
+    }
+  };
+
+  // ----------------------------
+  // 🔥 EMAIL + PASSORD LOGIN
+  // ----------------------------
   const handleLogin = async () => {
     try {
       setError("");
-      // Prøv å logge inn i Firebase
+
       const cred = await signInWithEmailAndPassword(auth, email, password);
       console.log("Innlogging OK:", cred.user.uid);
-  
-      // Når innlogging er vellykket → gå til hoved-appen (tabs)
+
       router.replace("/");
     } catch (err: any) {
       console.log("Login error:", err?.code || err);
       setError("Feil e-post eller passord");
     }
   };
-  
 
   return (
     <KeyboardAvoidingView
@@ -67,9 +103,14 @@ export default function LoginScreen() {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
 
-      {/* Login-knapp */}
+      {/* Email/passord login */}
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>Logg inn</Text>
+      </TouchableOpacity>
+
+      {/* GOOGLE LOGIN KNAPP */}
+      <TouchableOpacity style={[styles.loginButton, { backgroundColor: "#DB4437" }]} onPress={signInWithGoogle}>
+        <Text style={styles.loginText}>Logg inn med Google</Text>
       </TouchableOpacity>
 
       {/* Registrer deg */}
@@ -93,7 +134,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 42,
     fontWeight: "bold",
-    color: "#4A90E2", // varm dugnad-oransje
+    color: "#4A90E2",
     marginBottom: 50,
     letterSpacing: 1.5,
   },
