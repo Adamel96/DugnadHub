@@ -7,6 +7,8 @@ import {
   deleteDoc,
   arrayUnion,
   arrayRemove,
+  setDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +24,36 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import AntDesign from "@expo/vector-icons/AntDesign";
+
+const toggleFavorite = async (dugnadId: string, userId: string) => {
+  if (!userId) return false;
+
+  const favRef = doc(db, "favorites", userId);
+  const favSnap = await getDoc(favRef);
+
+  if (!favSnap.exists()) {
+    await setDoc(favRef, {
+      dugnadIds: [dugnadId],
+    });
+    return true;
+  } else {
+    const currentFavs = favSnap.data().dugnadIds || [];
+    const isFavorite = currentFavs.includes(dugnadId);
+
+    if (isFavorite) {
+      await updateDoc(favRef, {
+        dugnadIds: arrayRemove(dugnadId),
+      });
+      return false;
+    } else {
+      await updateDoc(favRef, {
+        dugnadIds: arrayUnion(dugnadId),
+      });
+      return true;
+    }
+  }
+};
 
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
@@ -30,6 +62,7 @@ export default function DugnadsDetaljer() {
 
   const [dugnad, setDugnad] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -76,6 +109,28 @@ export default function DugnadsDetaljer() {
 
     fetchDugnad();
   }, [id]);
+
+  // 🔥 Sjekk om dugnad er favoritt
+  useEffect(() => {
+    if (!user) return;
+
+    const favRef = doc(db, "favorites", user.uid);
+    const unsubscribe = onSnapshot(favRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const favorites = snapshot.data().dugnadIds || [];
+        setIsFavorite(favorites.includes(id as string));
+      } else {
+        setIsFavorite(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [user, id]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) return;
+    await toggleFavorite(id as string, user.uid);
+  };
 
   // 🔥 Påmelding
   const handleJoin = async () => {
@@ -171,10 +226,23 @@ export default function DugnadsDetaljer() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* TILBAKE */}
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backText}>{"< Tilbake"}</Text>
-      </Pressable>
+      {/* HEADER MED TILBAKE OG FAVORITT */}
+      <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backText}>{"< Tilbake"}</Text>
+        </Pressable>
+
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={handleToggleFavorite}
+        >
+          <AntDesign
+            name="heart"
+            size={28}
+            color={isFavorite ? "#E74C3C" : "#BDC3C7"}
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* BILDE */}
       {dugnad.image && (
@@ -254,8 +322,17 @@ export default function DugnadsDetaljer() {
 const styles = StyleSheet.create({
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 20, paddingTop: 10 },
-  backButton: { marginBottom: 20 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  backButton: {},
   backText: { fontSize: 18, color: "#007AFF", fontWeight: "500" },
+  favoriteButton: {
+    padding: 8,
+  },
   image: {
     width: "100%",
     height: 250,

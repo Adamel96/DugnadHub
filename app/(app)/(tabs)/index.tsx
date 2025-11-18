@@ -12,12 +12,53 @@ import {
 } from "react-native";
 
 import PostForm from "@/components/PostForm";
-import { db } from "@/firebase";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { db, auth } from "@/firebase";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+
+const toggleFavorite = async (dugnadId: string) => {
+  if (!auth.currentUser) return false;
+
+  const favRef = doc(db, "favorites", auth.currentUser.uid);
+  const favSnap = await getDoc(favRef);
+
+  if (!favSnap.exists()) {
+    await setDoc(favRef, {
+      dugnadIds: [dugnadId],
+    });
+    return true;
+  } else {
+    const currentFavs = favSnap.data().dugnadIds || [];
+    const isFavorite = currentFavs.includes(dugnadId);
+
+    if (isFavorite) {
+      await updateDoc(favRef, {
+        dugnadIds: arrayRemove(dugnadId),
+      });
+      return false;
+    } else {
+      await updateDoc(favRef, {
+        dugnadIds: arrayUnion(dugnadId),
+      });
+      return true;
+    }
+  }
+};
 
 export default function HomeScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,6 +75,26 @@ export default function HomeScreen() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const favRef = doc(db, "favorites", auth.currentUser.uid);
+    const unsubscribe = onSnapshot(favRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setFavorites(snapshot.data().dugnadIds || []);
+      } else {
+        setFavorites([]);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const handleToggleFavorite = async (dugnadId: string, e: any) => {
+    e.stopPropagation();
+    await toggleFavorite(dugnadId);
+  };
 
   return (
     <View style={styles.container}>
@@ -113,6 +174,17 @@ export default function HomeScreen() {
                   resizeMode="cover"
                 />
               )}
+
+              <TouchableOpacity
+                style={styles.favoriteButton}
+                onPress={(e) => handleToggleFavorite(post.id, e)}
+              >
+                <AntDesign
+                  name="heart"
+                  size={24}
+                  color={favorites.includes(post.id) ? "#E74C3C" : "rgba(255, 255, 255, 0.5)"}
+                />
+              </TouchableOpacity>
 
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
@@ -238,6 +310,18 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
     backgroundColor: "#E3F2FD",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   cardHeader: {
     flexDirection: "row",

@@ -8,14 +8,55 @@ import {
   Image,
 } from "react-native";
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "@/firebase";
+import { 
+  collection, 
+  onSnapshot, 
+  query,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+import { db, auth } from "@/firebase";
 import { useRouter } from "expo-router";
+import AntDesign from "@expo/vector-icons/AntDesign";
+
+const toggleFavorite = async (dugnadId: string) => {
+  if (!auth.currentUser) return false;
+
+  const favRef = doc(db, "favorites", auth.currentUser.uid);
+  const favSnap = await getDoc(favRef);
+
+  if (!favSnap.exists()) {
+    await setDoc(favRef, {
+      dugnadIds: [dugnadId],
+    });
+    return true;
+  } else {
+    const currentFavs = favSnap.data().dugnadIds || [];
+    const isFavorite = currentFavs.includes(dugnadId);
+
+    if (isFavorite) {
+      await updateDoc(favRef, {
+        dugnadIds: arrayRemove(dugnadId),
+      });
+      return false;
+    } else {
+      await updateDoc(favRef, {
+        dugnadIds: arrayUnion(dugnadId),
+      });
+      return true;
+    }
+  }
+};
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"dugnader" | "personer">("dugnader");
   const [dugnader, setDugnader] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,6 +70,26 @@ export default function Search() {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const favRef = doc(db, "favorites", auth.currentUser.uid);
+    const unsubscribe = onSnapshot(favRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setFavorites(snapshot.data().dugnadIds || []);
+      } else {
+        setFavorites([]);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const handleToggleFavorite = async (dugnadId: string, e: any) => {
+    e.stopPropagation();
+    await toggleFavorite(dugnadId);
+  };
 
   const personer = [
     {
@@ -125,6 +186,18 @@ export default function Search() {
                   {dugnad.image && (
                     <Image source={{ uri: dugnad.image }} style={styles.dugnadImage} />
                   )}
+                  
+                  <TouchableOpacity
+                    style={styles.favoriteButton}
+                    onPress={(e) => handleToggleFavorite(dugnad.id, e)}
+                  >
+                    <AntDesign
+                      name="heart"
+                      size={20}
+                      color={favorites.includes(dugnad.id) ? "#E74C3C" : "rgba(255, 255, 255, 0.5)"}
+                    />
+                  </TouchableOpacity>
+
                   <View style={styles.dugnadInfo}>
                     <Text style={styles.dugnadTitle}>{dugnad.title}</Text>
                     <View style={styles.dugnadMeta}>
@@ -282,12 +355,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    position: "relative",
   },
   dugnadImage: {
     width: 80,
     height: 80,
     borderRadius: 12,
     marginRight: 15,
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   dugnadInfo: {
     flex: 1,

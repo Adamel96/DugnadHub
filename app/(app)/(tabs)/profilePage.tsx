@@ -24,11 +24,9 @@ export default function ProfilePage() {
 
   const [username, setUsername] = useState("Laster...");
   const [email, setEmail] = useState("Laster...");
-
-  // 🔥 Teller dugnader
   const [myDugnadCount, setMyDugnadCount] = useState(0);
+  const [favoriteCount, setFavoriteCount] = useState(0);
 
-  // 🔵 Hent brukerprofil
   useEffect(() => {
     const loadUserData = async () => {
       const user = auth.currentUser;
@@ -49,7 +47,6 @@ export default function ProfilePage() {
     loadUserData();
   }, []);
 
-  // 🔵 Tell hvor mange dugnader bruker har opprettet
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -59,13 +56,28 @@ export default function ProfilePage() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMyDugnadCount(snapshot.size); // snapshot.size = antall dokumenter
+      setMyDugnadCount(snapshot.size);
     });
 
     return unsubscribe;
   }, []);
 
-  // 🔵 Logout
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const favRef = doc(db, "favorites", auth.currentUser.uid);
+    const unsubscribe = onSnapshot(favRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setFavoriteCount(data.dugnadIds?.length || 0);
+      } else {
+        setFavoriteCount(0);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const handleLogout = async () => {
     await signOut(auth);
     router.replace("/auth/login");
@@ -73,7 +85,6 @@ export default function ProfilePage() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header Section */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Image
@@ -85,7 +96,6 @@ export default function ProfilePage() {
         <Text style={styles.email}>{email}</Text>
       </View>
 
-      {/* Stats Section */}
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{myDugnadCount}</Text>
@@ -95,8 +105,8 @@ export default function ProfilePage() {
         <View style={styles.statDivider} />
 
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>245</Text>
-          <Text style={styles.statLabel}>Følgere</Text>
+          <Text style={styles.statNumber}>{favoriteCount}</Text>
+          <Text style={styles.statLabel}>Favoritter</Text>
         </View>
 
         <View style={styles.statDivider} />
@@ -107,7 +117,6 @@ export default function ProfilePage() {
         </View>
       </View>
 
-      {/* Menu Section */}
       <View style={styles.menuContainer}>
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>👤</Text>
@@ -124,6 +133,15 @@ export default function ProfilePage() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("../../favoritter")}
+        >
+          <Text style={styles.menuIcon}>⭐</Text>
+          <Text style={styles.menuText}>Favoritter</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>⚙️</Text>
           <Text style={styles.menuText}>Innstillinger</Text>
@@ -131,7 +149,6 @@ export default function ProfilePage() {
         </TouchableOpacity>
       </View>
 
-      {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logg ut</Text>
       </TouchableOpacity>
