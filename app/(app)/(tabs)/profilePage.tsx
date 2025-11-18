@@ -1,16 +1,16 @@
-import {
-  Text,
-  View,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { useEffect, useState } from "react";
 import { auth, db } from "@/firebase";
+import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -24,8 +24,6 @@ export default function ProfilePage() {
 
       setEmail(user.email ?? "Ukjent e-post");
 
-
-      // Hent Firestore-profil
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
 
@@ -41,7 +39,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.replace("/auth/login"); // sender brukeren direkte til login
+    router.replace("/auth/login");
   };
 
   return (
@@ -76,7 +74,7 @@ export default function ProfilePage() {
         </View>
       </View>
 
-      {/* Menu Items */}
+      {/* Menu Section */}
       <View style={styles.menuContainer}>
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>👤</Text>
@@ -84,7 +82,11 @@ export default function ProfilePage() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        {/* Mine Dugnader */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/(app)/mine_dugnader")}
+        >
           <Text style={styles.menuIcon}>📋</Text>
           <Text style={styles.menuText}>Mine Dugnader</Text>
           <Text style={styles.menuArrow}>›</Text>
