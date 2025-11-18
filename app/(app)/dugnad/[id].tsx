@@ -4,13 +4,12 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   arrayRemove,
-  deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
-
 import {
   Image,
   Pressable,
@@ -19,8 +18,9 @@ import {
   Text,
   ActivityIndicator,
   View,
-  Alert,
   Modal,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
 
 export default function DugnadsDetaljer() {
@@ -30,25 +30,43 @@ export default function DugnadsDetaljer() {
 
   const [dugnad, setDugnad] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showParticipants, setShowParticipants] = useState(false);
 
-  // 🔥 Hent dugnad fra Firestore
+  const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  // 🔥 Hent dugnad + deltakere
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
         const ref = doc(db, "dugnader", id as string);
         const snapshot = await getDoc(ref);
 
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-
-          // sørg for at participants alltid er et array
-          if (!data.participants) {
-            data.participants = [];
-          }
-
-          setDugnad(data);
+        if (!snapshot.exists()) {
+          setLoading(false);
+          return;
         }
+
+        const data = snapshot.data();
+        const participants = data.participants || [];
+
+        setDugnad({ ...data, participants });
+
+        // 🔥 HENT BRUKERNAVN FOR DELTAKERE
+        const profiles: any[] = [];
+        for (let uid of participants) {
+          const userRef = doc(db, "users", uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            profiles.push({
+              uid,
+              username: userSnap.data().username,
+              email: userSnap.data().email,
+            });
+          }
+        }
+
+        setParticipantProfiles(profiles);
       } catch (err) {
         console.log("Feil ved henting av dugnad:", err);
       } finally {
@@ -59,7 +77,7 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
-  // 🔥 MELD PÅ
+  // 🔥 Påmelding
   const handleJoin = async () => {
     if (!user || !dugnad) return;
 
@@ -69,13 +87,30 @@ export default function DugnadsDetaljer() {
       participants: arrayUnion(user.uid),
     });
 
+    // hent profil for den som meldte seg på
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    const username = userSnap.exists()
+      ? userSnap.data().username
+      : "Ukjent bruker";
+
     setDugnad({
       ...dugnad,
-      participants: [...(dugnad.participants || []), user.uid],
+      participants: [...dugnad.participants, user.uid],
     });
+
+    setParticipantProfiles([
+      ...participantProfiles,
+      {
+        uid: user.uid,
+        username,
+        email: user.email,
+      },
+    ]);
   };
 
-  // 🔥 MELD AV
+  // 🔥 Avmelding
   const handleLeave = async () => {
     if (!user || !dugnad) return;
 
@@ -87,17 +122,16 @@ export default function DugnadsDetaljer() {
 
     setDugnad({
       ...dugnad,
-      participants: (dugnad.participants || []).filter(
-        (uid: string) => uid !== user.uid
-      ),
+      participants: dugnad.participants.filter((uid: string) => uid !== user.uid),
     });
+
+    setParticipantProfiles(
+      participantProfiles.filter((p) => p.uid !== user.uid)
+    );
   };
 
-  // 🔥 SLETT DUGNAD (kun eier)
+  // 🔥 Slett dugnad
   const handleDelete = () => {
-    if (!user || !dugnad) return;
-    if (dugnad.createdByUID !== user.uid) return;
-
     Alert.alert(
       "Slett dugnad",
       "Er du sikker på at du vil slette denne dugnaden?",
@@ -115,6 +149,10 @@ export default function DugnadsDetaljer() {
     );
   };
 
+  const isOwner = dugnad?.createdByUID === user?.uid;
+  const isParticipant = dugnad?.participants?.includes(user?.uid);
+  const participantCount = dugnad?.participants?.length || 0;
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -131,48 +169,50 @@ export default function DugnadsDetaljer() {
     );
   }
 
-  const isOwner = dugnad.createdByUID === user?.uid;
-  const isParticipant = (dugnad.participants || []).includes(user?.uid);
-  const participantCount = dugnad.participants?.length ?? 0;
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Tilbake */}
+      {/* TILBAKE */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{"< Tilbake"}</Text>
       </Pressable>
 
-      {/* Bilde */}
+      {/* BILDE */}
       {dugnad.image && (
         <Image source={{ uri: dugnad.image }} style={styles.image} />
       )}
 
-      {/* Tittel + opprettet av */}
+      {/* TITTEL */}
       <Text style={styles.title}>{dugnad.title}</Text>
-      <Text style={styles.createdBy}>
-        Opprettet av: {dugnad.createdByUsername}
-      </Text>
 
-      {/* Påmeldingsinfo */}
-      <Pressable onPress={() => setShowParticipants(true)}>
-        <Text style={styles.participantsText}>
-          👥 {participantCount} / {dugnad.volunteerLimit} påmeldt
+      {/* Opprettet av */}
+      <Text style={styles.createdBy}>Opprettet av: {dugnad.createdByUsername}</Text>
+
+      {/* Påmeldte */}
+      <Pressable onPress={() => setIsPopupOpen(true)} style={styles.participantBox}>
+        <Text style={styles.participantText}>
+          👥 {participantCount} av {dugnad.volunteerLimit} påmeldt
         </Text>
       </Pressable>
 
-      {/* MELD PÅ / MELD AV – eier kan ikke melde seg på sin egen dugnad (kan endres om du vil) */}
-      {!isOwner && (
-        <Pressable
-          style={isParticipant ? styles.leaveButton : styles.joinButton}
-          onPress={isParticipant ? handleLeave : handleJoin}
-        >
-          <Text style={styles.joinLeaveText}>
-            {isParticipant ? "Meld av" : "Meld på"}
-          </Text>
+      {/* Påmeldingsknapp */}
+      {!isParticipant ? (
+        <Pressable style={styles.joinButton} onPress={handleJoin}>
+          <Text style={styles.joinButtonText}>Meld meg på</Text>
+        </Pressable>
+      ) : (
+        <Pressable style={styles.leaveButton} onPress={handleLeave}>
+          <Text style={styles.leaveButtonText}>Meld meg av</Text>
         </Pressable>
       )}
 
-      {/* Beskrivelse osv. */}
+      {/* Slette-knapp for eier */}
+      {isOwner && (
+        <Pressable style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
+        </Pressable>
+      )}
+
+      {/* INFO */}
       <Text style={styles.sectionLabel}>Beskrivelse</Text>
       <Text style={styles.text}>{dugnad.description}</Text>
 
@@ -182,35 +222,28 @@ export default function DugnadsDetaljer() {
       <Text style={styles.sectionLabel}>Dato og tid</Text>
       <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
 
-      {/* 🔥 SLETT-KNAPP KUN FOR EIER */}
-      {isOwner && (
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
-        </Pressable>
-      )}
+      {/* POPUP MED PÅMELDTE */}
+      <Modal visible={isPopupOpen} animationType="slide" transparent>
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupBox}>
+            <Text style={styles.popupTitle}>Påmeldte</Text>
 
-      {/* Popup med påmeldte (foreløpig bare UID-er – kan utvides til brukernavn senere) */}
-      <Modal visible={showParticipants} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.participantModal}>
-            <Text style={styles.modalTitle}>Påmeldte</Text>
-
-            {participantCount > 0 ? (
-              dugnad.participants.map((uid: string) => (
-                <Text key={uid} style={styles.participantName}>
-                  • {uid}
+            {participantProfiles.length === 0 ? (
+              <Text style={styles.noParticipants}>Ingen påmeldte enda</Text>
+            ) : (
+              participantProfiles.map((p) => (
+                <Text key={p.uid} style={styles.participantName}>
+                  • {p.username}
                 </Text>
               ))
-            ) : (
-              <Text>Ingen påmeldte enda</Text>
             )}
 
-            <Pressable
-              style={styles.closeModalButton}
-              onPress={() => setShowParticipants(false)}
+            <TouchableOpacity
+              style={styles.closePopup}
+              onPress={() => setIsPopupOpen(false)}
             >
-              <Text style={styles.closeModalText}>Lukk</Text>
-            </Pressable>
+              <Text style={styles.closePopupText}>Lukk</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -219,22 +252,10 @@ export default function DugnadsDetaljer() {
 }
 
 const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 100,
-  },
-  container: {
-    padding: 20,
-    paddingTop: 10,
-  },
+  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { padding: 20, paddingTop: 10 },
   backButton: { marginBottom: 20 },
-  backText: {
-    fontSize: 18,
-    color: "#007AFF",
-    fontWeight: "500",
-  },
+  backText: { fontSize: 18, color: "#007AFF", fontWeight: "500" },
   image: {
     width: "100%",
     height: 250,
@@ -244,37 +265,59 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   createdBy: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#666",
-    marginBottom: 8,
+    marginBottom: 20,
   },
-  participantsText: {
+  participantBox: {
+    padding: 12,
+    backgroundColor: "#ECF0F1",
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  participantText: {
     fontSize: 16,
-    marginBottom: 16,
-    fontWeight: "500",
-    color: "#333",
+    fontWeight: "600",
+    color: "#2C3E50",
   },
   joinButton: {
     backgroundColor: "#2ECC71",
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 15,
+  },
+  joinButtonText: {
+    color: "white",
+    fontWeight: "600",
+    textAlign: "center",
+    fontSize: 16,
   },
   leaveButton: {
     backgroundColor: "#E67E22",
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 15,
   },
-  joinLeaveText: {
-    fontSize: 16,
+  leaveButtonText: {
     color: "white",
     fontWeight: "600",
+    textAlign: "center",
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#E74C3C",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  deleteText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 17,
   },
   sectionLabel: {
     fontSize: 18,
@@ -282,43 +325,45 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 4,
   },
-  text: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#333",
-  },
-  deleteButton: {
-    marginTop: 25,
-    backgroundColor: "#E74C3C",
-    padding: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  deleteText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  modalOverlay: {
+  text: { fontSize: 16, color: "#333", lineHeight: 22 },
+
+  // POPUP
+  popupOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
   },
-  participantModal: {
+  popupBox: {
     width: "80%",
     backgroundColor: "white",
     padding: 20,
     borderRadius: 12,
+    elevation: 5,
   },
-  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  participantName: { fontSize: 16, marginVertical: 4 },
-  closeModalButton: {
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 15,
+  },
+  participantName: {
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  noParticipants: {
+    fontSize: 15,
+    color: "#888",
+    marginBottom: 10,
+  },
+  closePopup: {
     marginTop: 20,
-    padding: 10,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#3498DB",
+    padding: 12,
     borderRadius: 8,
-    alignItems: "center",
   },
-  closeModalText: { color: "white", fontWeight: "600" },
+  closePopupText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "600",
+  },
 });
