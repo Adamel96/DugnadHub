@@ -13,14 +13,14 @@ import {
 import SelectImageModal from "./SelectImageModal";
 
 import { db } from "@/firebase";
+import { useAuth } from "@/hooks/useAuth";
 import {
   addDoc,
   collection,
-  serverTimestamp,
   doc,
   getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import { useAuth } from "@/hooks/useAuth";
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
   const { user } = useAuth(); // 🔥 Vi har kun user, ikke profil
@@ -45,12 +45,12 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
       return;
     }
 
-    // 🔥 Hent brukernavn fra Firestore
+    // Hent brukernavn fra Firestore
     const ref = doc(db, "users", user.uid);
     const snap = await getDoc(ref);
     const username = snap.exists() ? snap.data().username : "Ukjent bruker";
 
-    // 🔥 Dette lagres i Firestore
+    // Dette lagres i Firestore
     const docData = {
       title,
       description,
@@ -66,7 +66,6 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
       createdByUsername: username,
 
       participants: [],
-
     };
 
     await addDoc(collection(db, "dugnader"), docData);
@@ -83,7 +82,10 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         />
       </Modal>
 
-      <Pressable onPress={() => setIsCameraOpen(true)} style={styles.addImageBox}>
+      <Pressable
+        onPress={() => setIsCameraOpen(true)}
+        style={styles.addImageBox}
+      >
         {image ? (
           <Image source={{ uri: image }} style={styles.previewImage} />
         ) : (
@@ -141,7 +143,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { width: "100%" },
+  container: { width: "100%", padding: 20 },
   addImageBox: {
     borderRadius: 10,
     overflow: "hidden",
