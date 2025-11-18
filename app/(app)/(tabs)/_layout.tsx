@@ -8,6 +8,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
+  // tabs for navigasjon
+
   return (
     <Tabs>
       <Tabs.Screen
