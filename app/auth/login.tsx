@@ -24,24 +24,23 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // ----------------------------
-  // 🔥 GOOGLE LOGIN FUNKSJON
-  // ----------------------------
+  // google login funksjon
+
   const signInWithGoogle = async () => {
     try {
-      // sjekk at Google Play Services finnes
+      // sjekk at google play services finnes
       await GoogleSignin.hasPlayServices();
 
       // start google login
       const response = await GoogleSignin.signIn();
 
       if (isSuccessResponse(response)) {
-        // hent idToken — NB! MÅ gjøres slik i Expo
+        // hent idToken fra google
         const { idToken } = await GoogleSignin.getTokens();
 
         const googleCredential = GoogleAuthProvider.credential(idToken);
 
-        // Logg inn i Firebase
+        // logg inn i Firebase
         await signInWithCredential(auth, googleCredential);
 
         console.log("Google login OK");
@@ -54,9 +53,9 @@ export default function LoginScreen() {
     }
   };
 
-  // ----------------------------
-  // 🔥 EMAIL + PASSORD LOGIN
-  // ----------------------------
+
+  //  email + passord login funksjon
+
   const handleLogin = async () => {
     try {
       setError("");

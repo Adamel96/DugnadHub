@@ -31,12 +31,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        // ---- HENT PROFIL ----
+        // hent profil
         const ref = doc(db, "users", firebaseUser.uid);
         const snap = await getDoc(ref);
 
         if (!snap.exists()) {
-          // ---- LAG PROFIL HVIS FØRSTE GANG ----
+          // lag profil for første gang
           await setDoc(ref, {
             email: firebaseUser.email,
             username: firebaseUser.displayName ?? "Ukjent bruker",

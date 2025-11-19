@@ -17,12 +17,12 @@ export default function SelectImageModal({
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   if (!permission) {
-    // Camera permissions are still loading.
+    // kameratilgang er ikke sjekket ennå
     return <View />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
+    // kameratilgang ikke gitt ennå
     return (
       <View style={styles.container}>
         <Text style={styles.message}>
@@ -35,6 +35,7 @@ export default function SelectImageModal({
 
   let camera: CameraView | null = null;
 
+  // ta bilde med kameraet
   const captureImage = async () => {
     if (cameraRef.current && isCameraReady) {
       const photo = await cameraRef.current.takePictureAsync();
@@ -46,7 +47,7 @@ export default function SelectImageModal({
   };
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
+    // åpne bildegalleri
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
@@ -70,6 +71,7 @@ export default function SelectImageModal({
         facing="back"
         onCameraReady={() => setIsCameraReady(true)}
       />
+      {/*Velg bilde fra kamerarull, ta bilde på tlf eller avbryt */}
 
       <View style={styles.overlayButtons}>
         <TouchableOpacity onPress={pickImage}>

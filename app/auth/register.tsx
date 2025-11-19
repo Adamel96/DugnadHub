@@ -24,7 +24,7 @@ export default function RegisterScreen() {
     try {
       setError("");
 
-      // Opprett bruker i Firebase Authentication
+      // opprett bruker i Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -33,7 +33,7 @@ export default function RegisterScreen() {
 
       const user = userCredential.user;
 
-      // Lag et dokument i Firestore med ekstra profilinfo
+      // lag et dokument i Firestore med ekstra profilinfo
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
@@ -41,7 +41,7 @@ export default function RegisterScreen() {
         createdAt: Date.now(),
       });
 
-      // Send brukeren til hovedsiden
+      // send brukeren til hovedsiden
       router.replace("/");
     } catch (err) {
       console.log(err);

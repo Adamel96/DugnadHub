@@ -6,6 +6,7 @@ export default function DugnadCard({ dugnad }: any) {
   const router = useRouter();
 
   return (
+    // hele kortet er trykkbart og åpner dugnad-detaljsiden
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
@@ -16,6 +17,7 @@ export default function DugnadCard({ dugnad }: any) {
         })
       }
     >
+      {/* Bilde på toppen av kortet */}
       {dugnad.image && (
         <Image
           source={{ uri: dugnad.image }}
@@ -24,6 +26,7 @@ export default function DugnadCard({ dugnad }: any) {
         />
       )}
 
+      {/* Overskrift, tittel og dato/tid */}
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderText}>
           <Text style={styles.title}>{dugnad.title}</Text>

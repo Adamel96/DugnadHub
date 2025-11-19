@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+
 import SelectImageModal from "./SelectImageModal";
 
 import { db } from "@/firebase";
@@ -25,6 +26,8 @@ import {
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
   const { user } = useAuth();
+
+  // lagring av skjema-verdier
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -32,16 +35,18 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
   const [description, setDescription] = useState("");
   const [task, setTask] = useState("");
   const [volunteerLimit, setVolunteerLimit] = useState("");
+
+  // styrer datovelger
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
+  // oppdaterer dato når bruker velger ny
   const onChange = (_event: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (selectedDate) setDate(selectedDate);
   };
 
-  // Validering
-
+  // enkel validering av inputfeltene
   const validate = () => {
     if (!title.trim()) {
       Alert.alert("Manglende tittel", "Du må skrive en tittel.");
@@ -74,21 +79,22 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
     return true;
   };
 
+  // lagrer dugnaden i firestore
   const handleSave = async () => {
     if (!user) {
       Alert.alert("Feil", "Du må være logget inn for å opprette en dugnad.");
       return;
     }
 
-    // Valider før lagring
+    // sjekk at alt er riktig utfylt
     if (!validate()) return;
 
-    // Hent brukernavn fra Firestore
+    // henter brukernavn til oppretter
     const ref = doc(db, "users", user.uid);
     const snap = await getDoc(ref);
     const username = snap.exists() ? snap.data().username : "Ukjent bruker";
 
-    // Dokumentet som skal lagres
+    // objektet som lagres i databasen
     const docData = {
       title,
       description,
@@ -104,6 +110,8 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
     };
 
     await addDoc(collection(db, "dugnader"), docData);
+
+    // lukk modalen etter lagring
     onSave();
   };
 
