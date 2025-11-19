@@ -2,7 +2,6 @@ import { EvilIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import {
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -13,21 +12,15 @@ import {
 } from "react-native";
 
 import SelectImageModal from "./SelectImageModal";
-
-import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+
+// 👇 API-er
+import { uploadImage } from "@/api/uploadImage";
+import { createPost } from "@/api/createPost";
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
   const { user } = useAuth();
 
-  // lagring av skjema-verdier
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -35,84 +28,50 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
   const [description, setDescription] = useState("");
   const [task, setTask] = useState("");
   const [volunteerLimit, setVolunteerLimit] = useState("");
-
-  // styrer datovelger
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
-  // oppdaterer dato når bruker velger ny
   const onChange = (_event: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (selectedDate) setDate(selectedDate);
   };
 
-  // enkel validering av inputfeltene
-  const validate = () => {
-    if (!title.trim()) {
-      Alert.alert("Manglende tittel", "Du må skrive en tittel.");
-      return false;
-    }
-
-    if (!description.trim()) {
-      Alert.alert("Manglende beskrivelse", "Du må skrive en beskrivelse.");
-      return false;
-    }
-
-    if (!task.trim()) {
-      Alert.alert("Manglende oppgave", "Du må skrive hva som skal gjøres.");
-      return false;
-    }
-
-    if (!volunteerLimit.trim() || Number(volunteerLimit) <= 0) {
-      Alert.alert(
-        "Ugyldig antall",
-        "Du må skrive hvor mange frivillige som trengs."
-      );
-      return false;
-    }
-
-    if (!image) {
-      Alert.alert("Mangler bilde", "Du må legge til et bilde.");
-      return false;
-    }
-
-    return true;
-  };
-
-  // lagrer dugnaden i firestore
   const handleSave = async () => {
     if (!user) {
-      Alert.alert("Feil", "Du må være logget inn for å opprette en dugnad.");
+      console.log("❌ Ingen innlogget bruker.");
       return;
     }
 
-    // sjekk at alt er riktig utfylt
-    if (!validate()) return;
+    let uploadedUrl: string | null = null;
 
-    // henter brukernavn til oppretter
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
-    const username = snap.exists() ? snap.data().username : "Ukjent bruker";
+    // 📸 LAST OPP BILDE HVIS DET FINNES
+    if (image) {
+      try {
+        uploadedUrl = await uploadImage(image);
+      } catch (e) {
+        console.log("❌ Kunne ikke laste opp bilde:", e);
+      }
+    }
 
-    // objektet som lagres i databasen
-    const docData = {
-      title,
-      description,
-      task,
-      volunteerLimit: Number(volunteerLimit),
-      date: date.toISOString(),
-      image,
-      createdAt: serverTimestamp(),
-      createdByUID: user.uid,
-      createdByEmail: user.email,
-      createdByUsername: username,
-      participants: [],
-    };
+    // 📝 LAG POSTEN
+    try {
+      await createPost({
+        title,
+        description,
+        task,
+        volunteerLimit: Number(volunteerLimit),
+        date: date.toISOString(),
+        image: uploadedUrl,
 
-    await addDoc(collection(db, "dugnader"), docData);
+        createdByUID: user.uid,
+        createdByEmail: user.email,
+        createdByUsername: user.email?.split("@")[0] || "Ukjent", // fallback
+      });
 
-    // lukk modalen etter lagring
-    onSave();
+      onSave(); // lukk modal
+    } catch (e) {
+      console.log("❌ Kunne ikke opprette post:", e);
+    }
   };
 
   return (
