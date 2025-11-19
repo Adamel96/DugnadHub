@@ -1,12 +1,3 @@
-// FULL OPPDATERT [id].tsx FIL MED KOMMENTARER + FIREBASE-INTEGRASJON
-// ---------------------------------------------------------------
-// Denne filen inkluderer:
-// ✔ Live kommentar-henting via onSnapshot
-// ✔ Legge til kommentar via addComment.ts
-// ✔ Kommentar-input og visning
-// ✔ Beholder eksisterende funksjoner (favoritter, påmelding osv.)
-// ---------------------------------------------------------------
-
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -35,9 +26,8 @@ import {
   TextInput,
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import { addComment } from "@/api/addComment"; // juster sti hvis nødvendig
+import { addComment } from "@/api/addComment";
 
-// funksjon for å legge til/fjerne dugnad fra favoritter
 const toggleFavorite = async (dugnadId: string, userId: string) => {
   if (!userId) return false;
 
@@ -67,7 +57,6 @@ const toggleFavorite = async (dugnadId: string, userId: string) => {
   }
 };
 
-// dugnad-detaljer-skjerm
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -80,11 +69,9 @@ export default function DugnadsDetaljer() {
   const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  // Kommentarfelt
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
 
-  // hent dugnad + deltakere
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
@@ -101,7 +88,6 @@ export default function DugnadsDetaljer() {
 
         setDugnad({ ...data, participants });
 
-        // hent profiler for deltakere
         const profiles: any[] = [];
         for (let uid of participants) {
           const userRef = doc(db, "users", uid);
@@ -116,7 +102,6 @@ export default function DugnadsDetaljer() {
           }
         }
 
-        // sett deltakere
         setParticipantProfiles(profiles);
       } catch (err) {
         console.log("Feil ved henting av dugnad:", err);
@@ -128,7 +113,6 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
-  // Live oppdatering av favoritt
   useEffect(() => {
     if (!user) return;
 
@@ -150,9 +134,15 @@ export default function DugnadsDetaljer() {
     await toggleFavorite(id as string, user.uid);
   };
 
-  // påmelding
+  // 🔥 PÅMELDING MED FULL-SJEKK
   const handleJoin = async () => {
     if (!user || !dugnad) return;
+
+    // Sjekk om dugnad er full
+    if (participantCount >= dugnad.volunteerLimit) {
+      Alert.alert("Dugnad full", "Denne dugnaden har nok deltakere.");
+      return;
+    }
 
     const ref = doc(db, "dugnader", id as string);
 
@@ -160,7 +150,6 @@ export default function DugnadsDetaljer() {
       participants: arrayUnion(user.uid),
     });
 
-    // hent profil for den som meldte seg på
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
@@ -183,7 +172,6 @@ export default function DugnadsDetaljer() {
     ]);
   };
 
-  // avmelding
   const handleLeave = async () => {
     if (!user || !dugnad) return;
 
@@ -203,7 +191,6 @@ export default function DugnadsDetaljer() {
     );
   };
 
-  // slett dugnad
   const handleDelete = () => {
     Alert.alert(
       "Slett dugnad",
@@ -222,12 +209,11 @@ export default function DugnadsDetaljer() {
     );
   };
 
-  // sjekk om bruker er eier eller deltaker
   const isOwner = dugnad?.createdByUID === user?.uid;
   const isParticipant = dugnad?.participants?.includes(user?.uid);
   const participantCount = dugnad?.participants?.length || 0;
+  const isFull = participantCount >= dugnad?.volunteerLimit; // 🔥 FULL-SJEKK
 
-  // 🔥 LIVE OPPDATERING AV KOMMENTARER
   useEffect(() => {
     const ref = doc(db, "dugnader", id as string);
 
@@ -241,7 +227,6 @@ export default function DugnadsDetaljer() {
     return () => unsubscribe();
   }, [id]);
 
-  // Legg til kommentar
   const handleAddComment = async () => {
     if (!user) return;
     if (commentText.trim().length === 0) return;
@@ -273,7 +258,6 @@ export default function DugnadsDetaljer() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backText}>{"< Tilbake"}</Text>
@@ -291,7 +275,6 @@ export default function DugnadsDetaljer() {
         </TouchableOpacity>
       </View>
 
-      {/* BILDE */}
       {dugnad.image && (
         <Image source={{ uri: dugnad.image }} style={styles.image} />
       )}
@@ -299,17 +282,22 @@ export default function DugnadsDetaljer() {
       <Text style={styles.title}>{dugnad.title}</Text>
       <Text style={styles.createdBy}>Opprettet av: {dugnad.createdByUsername}</Text>
 
-      {/* Påmeldte */}
       <Pressable onPress={() => setIsPopupOpen(true)} style={styles.participantBox}>
         <Text style={styles.participantText}>
           👥 {participantCount} av {dugnad.volunteerLimit} påmeldt
         </Text>
       </Pressable>
 
-      {/* Påmelding */}
+      {/* 🔥 PÅMELDINGSKNAPP MED FULL-SJEKK */}
       {!isParticipant ? (
-        <Pressable style={styles.joinButton} onPress={handleJoin}>
-          <Text style={styles.joinButtonText}>Meld meg på</Text>
+        <Pressable 
+          style={[styles.joinButton, isFull && styles.disabledButton]} 
+          onPress={handleJoin}
+          disabled={isFull}
+        >
+          <Text style={styles.joinButtonText}>
+            {isFull ? "Dugnad full" : "Meld meg på"}
+          </Text>
         </Pressable>
       ) : (
         <Pressable style={styles.leaveButton} onPress={handleLeave}>
@@ -317,14 +305,12 @@ export default function DugnadsDetaljer() {
         </Pressable>
       )}
 
-      {/* Slett (kun eier) */}
       {isOwner && (
         <Pressable style={styles.deleteButton} onPress={handleDelete}>
           <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
         </Pressable>
       )}
 
-      {/* INFO */}
       <Text style={styles.sectionLabel}>Beskrivelse</Text>
       <Text style={styles.text}>{dugnad.description}</Text>
 
@@ -334,7 +320,6 @@ export default function DugnadsDetaljer() {
       <Text style={styles.sectionLabel}>Dato og tid</Text>
       <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
 
-      {/* KOMMENTARER */}
       <Text style={styles.sectionLabel}>Kommentarer</Text>
 
       <View style={{ marginBottom: 20 }}>
@@ -366,7 +351,6 @@ export default function DugnadsDetaljer() {
         ))
       )}
 
-      {/* POPUP MED DELTAKERE */}
       <Modal visible={isPopupOpen} animationType="slide" transparent>
         <View style={styles.popupOverlay}>
           <View style={styles.popupBox}>
@@ -448,6 +432,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
   },
+  disabledButton: {
+    backgroundColor: "#95A5A6",
+    opacity: 0.6,
+  },
   leaveButton: {
     backgroundColor: "#E67E22",
     padding: 14,
@@ -480,7 +468,6 @@ const styles = StyleSheet.create({
   },
   text: { fontSize: 16, color: "#333", lineHeight: 22 },
 
-  // Kommentarer
   commentInput: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -517,7 +504,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Popup
   popupOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
