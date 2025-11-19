@@ -40,12 +40,11 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
     if (selectedDate) setDate(selectedDate);
   };
 
-
   // Validering
 
   const validate = () => {
     if (!title.trim()) {
-      Alert.alert("Manglende tittel", "Du må skrive inne en tittel.");
+      Alert.alert("Manglende tittel", "Du må skrive en tittel.");
       return false;
     }
 
@@ -62,7 +61,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
     if (!volunteerLimit.trim() || Number(volunteerLimit) <= 0) {
       Alert.alert(
         "Ugyldig antall",
-        "Du må skrive inn hvor mange frivillige som trengs."
+        "Du må skrive hvor mange frivillige som trengs."
       );
       return false;
     }
