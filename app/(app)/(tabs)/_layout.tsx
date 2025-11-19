@@ -1,9 +1,9 @@
-import { Tabs } from "expo-router";
-import React from "react";
-import { Text } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Text } from "react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme(); // sjekker om bruker har lys/mørk modus
@@ -47,7 +47,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name="search" size={24} color={color} />
           ),
-          // Overskrift øverst
+          // overskrift øverst
           headerTitle(props) {
             return (
               <Text
