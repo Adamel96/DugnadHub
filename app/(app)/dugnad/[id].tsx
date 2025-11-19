@@ -85,6 +85,8 @@ export default function DugnadsDetaljer() {
           return;
         }
 
+        // hent deltakerprofiler
+
         const data = snapshot.data();
         const participants = data.participants || [];
         setDugnad({ ...data, participants });
@@ -102,6 +104,7 @@ export default function DugnadsDetaljer() {
           }
         }
 
+        // oppdater state med deltakerprofiler
         setParticipantProfiles(profiles);
       } catch (err) {
         console.log("Feil ved henting av dugnad:", err);
@@ -116,6 +119,7 @@ export default function DugnadsDetaljer() {
   useEffect(() => {
     if (!user) return;
 
+    // lytter etter endringer i favorittstatus
     const favRef = doc(db, "favorites", user.uid);
     const unsubscribe = onSnapshot(favRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -148,6 +152,7 @@ export default function DugnadsDetaljer() {
       participants: arrayUnion(user.uid),
     });
 
+    // hent brukernavn for deltakerlisten
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
     const username = userSnap.exists()
@@ -190,6 +195,7 @@ export default function DugnadsDetaljer() {
     );
   };
 
+  // slett dugnad
   const handleDelete = () => {
     Alert.alert(
       "Slett dugnad",
@@ -208,11 +214,13 @@ export default function DugnadsDetaljer() {
     );
   };
 
+  // hjelpevariabler
   const isOwner = dugnad?.createdByUID === user?.uid; // sjekker om dette er din dugnad
   const isParticipant = dugnad?.participants?.includes(user?.uid);
   const participantCount = dugnad?.participants?.length || 0;
   const isFull = participantCount >= dugnad?.volunteerLimit;
 
+  // hent kommentarer i sanntid
   useEffect(() => {
     const ref = doc(db, "dugnader", id as string);
     const unsubscribe = onSnapshot(ref, (snap) => {
@@ -286,7 +294,7 @@ export default function DugnadsDetaljer() {
         style={styles.participantBox}
       >
         <Text style={styles.participantText}>
-          {participantCount} av {dugnad.volunteerLimit} påmeldt
+          {participantCount} av {dugnad.volunteerLimit} påmeldt 
         </Text>
       </Pressable>
 

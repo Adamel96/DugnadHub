@@ -67,7 +67,7 @@ export default function HomeScreen() {
 
   const router = useRouter();
 
-  // ---------------- LAST INN POSTER ----------------
+  // last inn poster
 
   const loadPosts = async () => {
     const list = await getPosts();
@@ -80,7 +80,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  // ---------------- REALTIME LISTENER FOR POSTER ----------------
+  // realtime poster
 
   useEffect(() => {
     const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
@@ -97,7 +97,7 @@ export default function HomeScreen() {
     return unsubscribe;
   }, []);
 
-  // ---------------- REALTIME FAVORITTER ----------------
+  // realtime favoritter
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -127,7 +127,7 @@ export default function HomeScreen() {
     await toggleLike(postId, auth.currentUser.uid);
   };
 
-  // ---------------- RENDER ----------------
+  // render
 
   return (
     <View style={styles.container}>

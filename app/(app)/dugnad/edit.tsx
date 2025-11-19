@@ -19,6 +19,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import SelectImageModal from "@/components/SelectImageModal";
 import { uploadImage } from "@/api/uploadImage";
 
+// rediger dugnad-side
 export default function EditDugnad() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function EditDugnad() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
+  // henter dugnaddata ved lasting av siden
   useEffect(() => {
     const load = async () => {
       const ref = doc(db, "dugnader", id as string);
@@ -47,6 +49,7 @@ export default function EditDugnad() {
         return;
       }
 
+      // oppdater state med hentede data
       const data = snap.data();
 
       setDugnad(data);
@@ -68,6 +71,7 @@ export default function EditDugnad() {
     if (selected) setDate(selected);
   };
 
+  // enkel validering av alle felt
   const validate = () => {
     if (!title.trim()) {
       Alert.alert("Manglende tittel", "Skriv en tittel.");
@@ -101,6 +105,7 @@ export default function EditDugnad() {
       }
     }
 
+    // oppdater dugnad i databasen
     const ref = doc(db, "dugnader", id as string);
 
     await updateDoc(ref, {
@@ -123,6 +128,7 @@ export default function EditDugnad() {
     );
   }
 
+  // hoved-UI
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Rediger dugnad</Text>
