@@ -23,12 +23,14 @@ import { db, auth } from "@/firebase";
 import { useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
+// funksjon som legger til/fjerner en favoritt
 const toggleFavorite = async (dugnadId: string) => {
   if (!auth.currentUser) return false;
 
   const favRef = doc(db, "favorites", auth.currentUser.uid);
   const favSnap = await getDoc(favRef);
 
+  // dersom bruker ikke har favoritt-dokument → lag et nytt dokument
   if (!favSnap.exists()) {
     await setDoc(favRef, {
       dugnadIds: [dugnadId],
@@ -38,6 +40,7 @@ const toggleFavorite = async (dugnadId: string) => {
     const currentFavs = favSnap.data().dugnadIds || [];
     const isFavorite = currentFavs.includes(dugnadId);
 
+    // fjern eller legg til i array i Firestore
     if (isFavorite) {
       await updateDoc(favRef, {
         dugnadIds: arrayRemove(dugnadId),
@@ -54,11 +57,14 @@ const toggleFavorite = async (dugnadId: string) => {
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"dugnader" | "personer">("dugnader");
+  const [activeTab, setActiveTab] = useState<"dugnader" | "personer">(
+    "dugnader"
+  );
   const [dugnader, setDugnader] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const router = useRouter();
 
+  // henter alle dugnader i sanntid fra Firestore
   useEffect(() => {
     const q = query(collection(db, "dugnader"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -71,6 +77,7 @@ export default function Search() {
     return unsubscribe;
   }, []);
 
+  // henter brukerens favoritt-dugnader i sanntid
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -86,11 +93,13 @@ export default function Search() {
     return unsubscribe;
   }, []);
 
+  // håndterer trykk på favoritt-knapp
   const handleToggleFavorite = async (dugnadId: string, e: any) => {
     e.stopPropagation();
     await toggleFavorite(dugnadId);
   };
 
+  // dummy-data for personsøk
   const personer = [
     {
       id: 1,
@@ -115,12 +124,15 @@ export default function Search() {
     },
   ];
 
-  const filteredDugnader = dugnader.filter((dugnad) =>
-    dugnad.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    dugnad.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    dugnad.task?.toLowerCase().includes(searchQuery.toLowerCase())
+  // filtrerer dugnader basert på søketekst
+  const filteredDugnader = dugnader.filter(
+    (dugnad) =>
+      dugnad.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dugnad.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dugnad.task?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // filtrerer personer basert på søketekst
   const filteredPersoner = personer.filter(
     (person) =>
       person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -129,12 +141,15 @@ export default function Search() {
 
   return (
     <View style={styles.container}>
+      {/* ▸ Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Søk</Text>
       </View>
 
+      {/* ▸ Søkefelt */}
       <View style={styles.searchContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
+
         <TextInput
           style={styles.searchInput}
           placeholder="Søk etter dugnader eller personer..."
@@ -142,6 +157,8 @@ export default function Search() {
           onChangeText={setSearchQuery}
           placeholderTextColor="#95A5A6"
         />
+
+        {/* X for å slette søket */}
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery("")}>
             <Text style={styles.clearIcon}>✕</Text>
@@ -149,28 +166,42 @@ export default function Search() {
         )}
       </View>
 
+      {/* ▸ Tabs (Dugnader | Personer) */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === "dugnader" && styles.activeTab]}
           onPress={() => setActiveTab("dugnader")}
         >
-          <Text style={[styles.tabText, activeTab === "dugnader" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "dugnader" && styles.activeTabText,
+            ]}
+          >
             Dugnader
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.tab, activeTab === "personer" && styles.activeTab]}
           onPress={() => setActiveTab("personer")}
         >
-          <Text style={[styles.tabText, activeTab === "personer" && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "personer" && styles.activeTabText,
+            ]}
+          >
             Personer
           </Text>
         </TouchableOpacity>
       </View>
 
+      {/* ▸ Resultatliste */}
       <ScrollView style={styles.resultsContainer}>
         {activeTab === "dugnader" ? (
           <>
+            {/* Hvis dugnader finnes */}
             {filteredDugnader.length > 0 ? (
               filteredDugnader.map((dugnad) => (
                 <TouchableOpacity
@@ -183,10 +214,15 @@ export default function Search() {
                     })
                   }
                 >
+                  {/* Bilde */}
                   {dugnad.image && (
-                    <Image source={{ uri: dugnad.image }} style={styles.dugnadImage} />
+                    <Image
+                      source={{ uri: dugnad.image }}
+                      style={styles.dugnadImage}
+                    />
                   )}
-                  
+
+                  {/* Favorittknapp */}
                   <TouchableOpacity
                     style={styles.favoriteButton}
                     onPress={(e) => handleToggleFavorite(dugnad.id, e)}
@@ -194,12 +230,18 @@ export default function Search() {
                     <AntDesign
                       name="heart"
                       size={20}
-                      color={favorites.includes(dugnad.id) ? "#E74C3C" : "rgba(255, 255, 255, 0.5)"}
+                      color={
+                        favorites.includes(dugnad.id)
+                          ? "#E74C3C"
+                          : "rgba(255, 255, 255, 0.5)"
+                      }
                     />
                   </TouchableOpacity>
 
+                  {/* Info */}
                   <View style={styles.dugnadInfo}>
                     <Text style={styles.dugnadTitle}>{dugnad.title}</Text>
+
                     <View style={styles.dugnadMeta}>
                       <Text style={styles.dugnadDate}>
                         📅{" "}
@@ -210,6 +252,7 @@ export default function Search() {
                             })
                           : "Ikke satt"}
                       </Text>
+
                       <Text style={styles.dugnadParticipants}>
                         👥 {dugnad.volunteerLimit || 0} plasser
                       </Text>
@@ -218,6 +261,7 @@ export default function Search() {
                 </TouchableOpacity>
               ))
             ) : (
+              // ingen dugnader funnet
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>🔍</Text>
                 <Text style={styles.emptyText}>
@@ -228,21 +272,30 @@ export default function Search() {
           </>
         ) : (
           <>
+            {/* Personer-tab */}
             {filteredPersoner.length > 0 ? (
               filteredPersoner.map((person) => (
                 <TouchableOpacity key={person.id} style={styles.personCard}>
-                  <Image source={{ uri: person.avatar }} style={styles.personAvatar} />
+                  <Image
+                    source={{ uri: person.avatar }}
+                    style={styles.personAvatar}
+                  />
+
                   <View style={styles.personInfo}>
                     <Text style={styles.personName}>{person.name}</Text>
                     <Text style={styles.personUsername}>{person.username}</Text>
-                    <Text style={styles.personDugnader}>{person.dugnader} dugnader</Text>
+                    <Text style={styles.personDugnader}>
+                      {person.dugnader} dugnader
+                    </Text>
                   </View>
+
                   <TouchableOpacity style={styles.followButton}>
                     <Text style={styles.followButtonText}>Følg</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))
             ) : (
+              // ingen personer funnet
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>👥</Text>
                 <Text style={styles.emptyText}>

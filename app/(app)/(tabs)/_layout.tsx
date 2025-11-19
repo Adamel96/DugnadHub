@@ -6,12 +6,12 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme(); // sjekker om bruker har lys/mørk modus
 
-  // tabs for navigasjon
-
+  // nederste navigasjonsmeny aka "tab bar"
   return (
     <Tabs>
+      {/* Hjem-skjermen */}
       <Tabs.Screen
         name="index"
         options={{
@@ -19,6 +19,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <AntDesign name="home" size={24} color={color} />
           ),
+          // Overskrift øverst i skjermen
           headerTitle(props) {
             return (
               <Text
@@ -37,6 +38,8 @@ export default function TabLayout() {
           },
         }}
       />
+
+      {/* Søk-skjermen */}
       <Tabs.Screen
         name="search"
         options={{
@@ -44,6 +47,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name="search" size={24} color={color} />
           ),
+          // Overskrift øverst
           headerTitle(props) {
             return (
               <Text
@@ -62,6 +66,8 @@ export default function TabLayout() {
           },
         }}
       />
+
+      {/* Profil-skjermen */}
       <Tabs.Screen
         name="profilePage"
         options={{
@@ -69,6 +75,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <AntDesign name="user" size={24} color={color} />
           ),
+          // Overskrift øverst
           headerTitle(props) {
             return (
               <Text

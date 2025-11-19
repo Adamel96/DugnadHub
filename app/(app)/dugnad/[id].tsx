@@ -26,6 +26,8 @@ import {
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
+
+// funksjon for å legge til/fjerne dugnad fra favoritter
 const toggleFavorite = async (dugnadId: string, userId: string) => {
   if (!userId) return false;
 
@@ -54,7 +56,7 @@ const toggleFavorite = async (dugnadId: string, userId: string) => {
     }
   }
 };
-
+// dugnad-detaljer-skjerm
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -67,7 +69,7 @@ export default function DugnadsDetaljer() {
   const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  // 🔥 Hent dugnad + deltakere
+  // hent dugnad + deltakere
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
@@ -84,7 +86,7 @@ export default function DugnadsDetaljer() {
 
         setDugnad({ ...data, participants });
 
-        // 🔥 HENT BRUKERNAVN FOR DELTAKERE
+        // hent profiler for deltakere
         const profiles: any[] = [];
         for (let uid of participants) {
           const userRef = doc(db, "users", uid);
@@ -99,6 +101,7 @@ export default function DugnadsDetaljer() {
           }
         }
 
+        // sett deltakere
         setParticipantProfiles(profiles);
       } catch (err) {
         console.log("Feil ved henting av dugnad:", err);
@@ -110,7 +113,7 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
-  // 🔥 Sjekk om dugnad er favoritt
+  // sjekk om dugnad er favoritt
   useEffect(() => {
     if (!user) return;
 
@@ -132,7 +135,7 @@ export default function DugnadsDetaljer() {
     await toggleFavorite(id as string, user.uid);
   };
 
-  // 🔥 Påmelding
+  // påmelding
   const handleJoin = async () => {
     if (!user || !dugnad) return;
 
@@ -165,7 +168,7 @@ export default function DugnadsDetaljer() {
     ]);
   };
 
-  // 🔥 Avmelding
+  // avmelding
   const handleLeave = async () => {
     if (!user || !dugnad) return;
 
@@ -185,7 +188,7 @@ export default function DugnadsDetaljer() {
     );
   };
 
-  // 🔥 Slett dugnad
+  // slett dugnad
   const handleDelete = () => {
     Alert.alert(
       "Slett dugnad",
@@ -204,6 +207,7 @@ export default function DugnadsDetaljer() {
     );
   };
 
+  // sjekk om bruker er eier eller deltaker
   const isOwner = dugnad?.createdByUID === user?.uid;
   const isParticipant = dugnad?.participants?.includes(user?.uid);
   const participantCount = dugnad?.participants?.length || 0;

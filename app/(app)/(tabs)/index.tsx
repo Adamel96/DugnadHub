@@ -12,6 +12,8 @@ import {
   View,
 } from "react-native";
 
+// firebase-funksjoner
+
 import PostForm from "@/components/PostForm";
 import { auth, db } from "@/firebase";
 import {
@@ -27,6 +29,8 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+
+// favorittlogikk
 
 const toggleFavorite = async (dugnadId: string) => {
   if (!auth.currentUser) return false;
@@ -77,6 +81,8 @@ export default function HomeScreen() {
 
     setPosts(list);
   };
+
+  // kalles når brukeren trekker ned for å oppdatere
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -147,6 +153,7 @@ export default function HomeScreen() {
         }}
       />
 
+      {/* Modal for å opprette ny dugnad */}
       <Modal
         visible={isModalOpen}
         animationType="slide"
@@ -168,6 +175,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* Hovedliste med dugnader + pull to refresh */}
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -175,6 +183,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.postList}
         showsVerticalScrollIndicator={false}
       >
+        {/* Vis hvis ingen dugnader finnes */}
         {posts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📋</Text>
@@ -244,6 +253,7 @@ export default function HomeScreen() {
                 <AntDesign name="right" size={20} color="#BDC3C7" />
               </View>
 
+              {/* Beskrivelse + detaljer */}
               <View style={styles.cardContent}>
                 <Text style={styles.description} numberOfLines={2}>
                   {post.description}

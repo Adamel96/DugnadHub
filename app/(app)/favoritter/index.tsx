@@ -1,9 +1,10 @@
 import { auth, db } from "@/firebase";
-import { useRouter } from "expo-router";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import { Stack, useRouter } from "expo-router";
 import {
   doc,
-  onSnapshot,
   getDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
@@ -14,9 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import { Stack } from "expo-router";
 
+// skjerm for å vise favoritt-dugnader
 export default function FavoritterPage() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -25,13 +25,16 @@ export default function FavoritterPage() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
+    // referanse til favorittlisten for gjeldende bruker
     const favRef = doc(db, "favorites", auth.currentUser.uid);
-    
+
+    // lytter etter endringer i favorittlisten
     const unsubscribe = onSnapshot(favRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         const dugnadIds = data.dugnadIds || [];
 
+        // henter dugnaddata for hver favoritt
         const dugnadPromises = dugnadIds.map(async (id: string) => {
           const dugnadRef = doc(db, "dugnader", id);
           const dugnadSnap = await getDoc(dugnadRef);
@@ -41,9 +44,12 @@ export default function FavoritterPage() {
           return null;
         });
 
+        // venter på at alle dugnader skal hentes
         const dugnader = await Promise.all(dugnadPromises);
+        // filtrerer ut eventuelle null-verdier
         setFavorites(dugnader.filter((d) => d !== null));
       } else {
+        // ingen favoritter funnet
         setFavorites([]);
       }
       setLoading(false);
@@ -52,6 +58,7 @@ export default function FavoritterPage() {
     return unsubscribe;
   }, []);
 
+  // visning av favoritt-dugnader
   if (loading) {
     return (
       <View style={styles.container}>
@@ -62,6 +69,7 @@ export default function FavoritterPage() {
 
   return (
     <View style={styles.container}>
+      {/* Header-oppsett */}
       <Stack.Screen
         options={{
           title: "Favoritter",
@@ -84,7 +92,7 @@ export default function FavoritterPage() {
           ),
         }}
       />
-
+      {/*  Scroll-visning av favorittene */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {favorites.length === 0 ? (
           <View style={styles.emptyState}>
@@ -107,6 +115,7 @@ export default function FavoritterPage() {
                 })
               }
             >
+              {/* Bilde */}
               {dugnad.image && (
                 <Image
                   source={{ uri: dugnad.image }}
@@ -115,6 +124,7 @@ export default function FavoritterPage() {
                 />
               )}
 
+              {/* Header med tittel og dato */}
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
                   <Text style={styles.title}>{dugnad.title}</Text>
@@ -140,11 +150,13 @@ export default function FavoritterPage() {
                 <AntDesign name="right" size={20} color="#BDC3C7" />
               </View>
 
+              {/* Innhold */}
               <View style={styles.cardContent}>
                 <Text style={styles.description} numberOfLines={2}>
                   {dugnad.description}
                 </Text>
 
+                {/*  Ekstrainfo */}
                 <View style={styles.detailsContainer}>
                   <View style={styles.detailItem}>
                     <Text style={styles.detailIcon}>📋</Text>

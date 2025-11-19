@@ -22,6 +22,7 @@ import {
 export default function ProfilePage() {
   const router = useRouter();
 
+  // states for å vise brukerdata og stats
   const [username, setUsername] = useState("Laster...");
   const [email, setEmail] = useState("Laster...");
   const [myDugnadCount, setMyDugnadCount] = useState(0);
@@ -32,8 +33,10 @@ export default function ProfilePage() {
       const user = auth.currentUser;
       if (!user) return;
 
+      // e-post fra Firebase Auth
       setEmail(user.email ?? "Ukjent e-post");
 
+      // brukernavn fra Firestore
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
 
@@ -47,6 +50,7 @@ export default function ProfilePage() {
     loadUserData();
   }, []);
 
+  // teller hvor mange dugnader brukeren har opprettet
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -62,6 +66,7 @@ export default function ProfilePage() {
     return unsubscribe;
   }, []);
 
+  // teller hvor mange favoritter brukeren har
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -78,6 +83,7 @@ export default function ProfilePage() {
     return unsubscribe;
   }, []);
 
+  // logger ut bruker og sender til login-skjermen
   const handleLogout = async () => {
     await signOut(auth);
     router.replace("/auth/login");

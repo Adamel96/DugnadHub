@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 
+// skjerm for å vise mine opprettede dugnader
 export default function MineDugnaderScreen() {
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const router = useRouter();
@@ -25,13 +26,14 @@ export default function MineDugnaderScreen() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // 🔥 riktig felt: createdByUID
+    // riktig felt: createdByUID
     const q = query(
       collection(db, "dugnader"),
       where("createdByUID", "==", auth.currentUser.uid),
       orderBy("createdAt", "desc")
     );
 
+    // lytter etter endringer i mine dugnader
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -44,8 +46,10 @@ export default function MineDugnaderScreen() {
     return unsubscribe;
   }, []);
 
+  // visning av mine dugnader
   return (
     <View style={styles.container}>
+      {/* Setter opp headeren for denne skjermen */}
       <Stack.Screen
         options={{
           title: "Mine dugnader",
@@ -65,7 +69,7 @@ export default function MineDugnaderScreen() {
           ),
         }}
       />
-
+      {/* Liste over dugnader brukeren har laget */}
       <ScrollView contentContainerStyle={styles.list}>
         {myPosts.length === 0 ? (
           <View style={styles.emptyState}>
