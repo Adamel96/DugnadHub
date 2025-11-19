@@ -1,7 +1,5 @@
-
-
 import { db } from "@/firebase";
-import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 
 export async function addComment(
   postId: string,
@@ -17,7 +15,7 @@ export async function addComment(
     const newComment = {
       ...comment,
       id: Math.random().toString(36).substring(2),
-      createdAt: serverTimestamp(),
+      createdAt: new Date(), // ← FIX
     };
 
     await updateDoc(ref, {

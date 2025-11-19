@@ -1,3 +1,12 @@
+// FULL OPPDATERT [id].tsx FIL MED KOMMENTARER + FIREBASE-INTEGRASJON
+// ---------------------------------------------------------------
+// Denne filen inkluderer:
+// ✔ Live kommentar-henting via onSnapshot
+// ✔ Legge til kommentar via addComment.ts
+// ✔ Kommentar-input og visning
+// ✔ Beholder eksisterende funksjoner (favoritter, påmelding osv.)
+// ---------------------------------------------------------------
+
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -23,9 +32,10 @@ import {
   Modal,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
-
+import { addComment } from "@/api/addComment"; // juster sti hvis nødvendig
 
 // funksjon for å legge til/fjerne dugnad fra favoritter
 const toggleFavorite = async (dugnadId: string, userId: string) => {
@@ -56,6 +66,7 @@ const toggleFavorite = async (dugnadId: string, userId: string) => {
     }
   }
 };
+
 // dugnad-detaljer-skjerm
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
@@ -68,6 +79,10 @@ export default function DugnadsDetaljer() {
 
   const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  // Kommentarfelt
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentText, setCommentText] = useState("");
 
   // hent dugnad + deltakere
   useEffect(() => {
@@ -113,7 +128,7 @@ export default function DugnadsDetaljer() {
     fetchDugnad();
   }, [id]);
 
-  // sjekk om dugnad er favoritt
+  // Live oppdatering av favoritt
   useEffect(() => {
     if (!user) return;
 
@@ -212,6 +227,34 @@ export default function DugnadsDetaljer() {
   const isParticipant = dugnad?.participants?.includes(user?.uid);
   const participantCount = dugnad?.participants?.length || 0;
 
+  // 🔥 LIVE OPPDATERING AV KOMMENTARER
+  useEffect(() => {
+    const ref = doc(db, "dugnader", id as string);
+
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setComments(data.comments || []);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [id]);
+
+  // Legg til kommentar
+  const handleAddComment = async () => {
+    if (!user) return;
+    if (commentText.trim().length === 0) return;
+
+    await addComment(id as string, {
+      uid: user.uid,
+      username: user.displayName || user.email || "Ukjent",
+      text: commentText.trim(),
+    });
+
+    setCommentText("");
+  };
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -230,7 +273,7 @@ export default function DugnadsDetaljer() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* HEADER MED TILBAKE OG FAVORITT */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backText}>{"< Tilbake"}</Text>
@@ -253,10 +296,7 @@ export default function DugnadsDetaljer() {
         <Image source={{ uri: dugnad.image }} style={styles.image} />
       )}
 
-      {/* TITTEL */}
       <Text style={styles.title}>{dugnad.title}</Text>
-
-      {/* Opprettet av */}
       <Text style={styles.createdBy}>Opprettet av: {dugnad.createdByUsername}</Text>
 
       {/* Påmeldte */}
@@ -266,7 +306,7 @@ export default function DugnadsDetaljer() {
         </Text>
       </Pressable>
 
-      {/* Påmeldingsknapp */}
+      {/* Påmelding */}
       {!isParticipant ? (
         <Pressable style={styles.joinButton} onPress={handleJoin}>
           <Text style={styles.joinButtonText}>Meld meg på</Text>
@@ -277,7 +317,7 @@ export default function DugnadsDetaljer() {
         </Pressable>
       )}
 
-      {/* Slette-knapp for eier */}
+      {/* Slett (kun eier) */}
       {isOwner && (
         <Pressable style={styles.deleteButton} onPress={handleDelete}>
           <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
@@ -294,7 +334,39 @@ export default function DugnadsDetaljer() {
       <Text style={styles.sectionLabel}>Dato og tid</Text>
       <Text style={styles.text}>{new Date(dugnad.date).toLocaleString()}</Text>
 
-      {/* POPUP MED PÅMELDTE */}
+      {/* KOMMENTARER */}
+      <Text style={styles.sectionLabel}>Kommentarer</Text>
+
+      <View style={{ marginBottom: 20 }}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Skriv en kommentar..."
+          value={commentText}
+          onChangeText={setCommentText}
+        />
+
+        <Pressable style={styles.commentButton} onPress={handleAddComment}>
+          <Text style={styles.commentButtonText}>Legg til kommentar</Text>
+        </Pressable>
+      </View>
+
+      {comments.length === 0 ? (
+        <Text style={{ color: "#888" }}>Ingen kommentarer ennå</Text>
+      ) : (
+        comments.map((c) => (
+          <View key={c.id} style={styles.commentBox}>
+            <Text style={styles.commentAuthor}>{c.username}</Text>
+            <Text style={styles.commentText}>{c.text}</Text>
+            <Text style={styles.commentTime}>
+              {c.createdAt?.toDate
+                ? c.createdAt.toDate().toLocaleString()
+                : "Sender..."}
+            </Text>
+          </View>
+        ))
+      )}
+
+      {/* POPUP MED DELTAKERE */}
       <Modal visible={isPopupOpen} animationType="slide" transparent>
         <View style={styles.popupOverlay}>
           <View style={styles.popupBox}>
@@ -408,7 +480,44 @@ const styles = StyleSheet.create({
   },
   text: { fontSize: 16, color: "#333", lineHeight: 22 },
 
-  // POPUP
+  // Kommentarer
+  commentInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  commentButton: {
+    backgroundColor: "#3498DB",
+    padding: 12,
+    borderRadius: 8,
+  },
+  commentButtonText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  commentBox: {
+    backgroundColor: "#ECF0F1",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  commentAuthor: {
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  commentText: {
+    fontSize: 15,
+  },
+  commentTime: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 4,
+  },
+
+  // Popup
   popupOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
