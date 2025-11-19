@@ -1,5 +1,5 @@
 Testbruker 👤
-email: test@test.com
+email: sensor@sensor.com
 passord: 123123
 
 • (Enkel) Søke- og filtreringsfunksjon: Brukere kan søke og/eller filtrere dugnader
@@ -42,4 +42,3 @@ Kilder:
 
 Brage Hveding Ersdal (2025). Undervisningsmateriale på Canvas og github for faget: TDS200 Kryssplattform.
 https://github.com/studBrage/Kryssplattform-HK-H25
-
