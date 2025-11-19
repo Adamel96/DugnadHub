@@ -37,3 +37,9 @@ deltakelser (kun for arrangører eller administrator).
 demonstrerer selvstendighet, kreativitet eller teknisk dyktighet.
 
 Appen er testet i iOS-simulator 🍎
+
+Kilder:
+
+Brage Hveding Ersdal (2025). Undervisningsmateriale på Canvas og github for faget: TDS200 Kryssplattform.
+https://github.com/studBrage/Kryssplattform-HK-H25
+
