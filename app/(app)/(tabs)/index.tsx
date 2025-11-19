@@ -15,8 +15,9 @@ import {
 import PostForm from "@/components/PostForm";
 import { auth, db } from "@/firebase";
 
-// 🔥 Henter API-funksjoner
+// API
 import { getPosts } from "@/api/getPosts";
+import { toggleLike } from "@/api/likePost";
 
 import {
   arrayRemove,
@@ -119,6 +120,13 @@ export default function HomeScreen() {
     await toggleFavorite(dugnadId);
   };
 
+  const handleLike = async (postId: string, e: any) => {
+    e.stopPropagation();
+    if (!auth.currentUser) return;
+
+    await toggleLike(postId, auth.currentUser.uid);
+  };
+
   // ---------------- RENDER ----------------
 
   return (
@@ -187,6 +195,7 @@ export default function HomeScreen() {
                 })
               }
             >
+              {/* BILDE */}
               {post.image && (
                 <Image
                   source={{ uri: post.image }}
@@ -195,6 +204,7 @@ export default function HomeScreen() {
                 />
               )}
 
+              {/* FAVORITT KNAPP */}
               <TouchableOpacity
                 style={styles.favoriteButton}
                 onPress={(e) => handleToggleFavorite(post.id, e)}
@@ -210,6 +220,26 @@ export default function HomeScreen() {
                 />
               </TouchableOpacity>
 
+              {/* LIKE KNAPP – NY PLASSERING */}
+              <View style={styles.likeWrapper}>
+                <TouchableOpacity
+                  style={styles.likeButton}
+                  onPress={(e) => handleLike(post.id, e)}
+                >
+                  <AntDesign
+                    name="like"
+                    size={18}
+                    color={
+                      post.likes?.includes(auth.currentUser?.uid)
+                        ? "#3498DB"
+                        : "#7F8C8D"
+                    }
+                  />
+                  <Text style={styles.likeCount}>{post.likes?.length || 0}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* HEADER + INFO */}
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
                   <Text style={styles.title}>{post.title}</Text>
@@ -239,6 +269,7 @@ export default function HomeScreen() {
                 <AntDesign name="right" size={20} color="#BDC3C7" />
               </View>
 
+              {/* BESKRIVELSE */}
               <View style={styles.cardContent}>
                 <Text style={styles.description} numberOfLines={2}>
                   {post.description}
@@ -271,6 +302,8 @@ export default function HomeScreen() {
     </View>
   );
 }
+
+// ---------------- STYLES ----------------
 
 const styles = StyleSheet.create({
   container: {
@@ -340,6 +373,8 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: "#E3F2FD",
   },
+
+  // FAVORITT-KNAPP
   favoriteButton: {
     position: "absolute",
     top: 15,
@@ -352,6 +387,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
+
+  // LIKE-KNAPP (NY)
+  likeWrapper: {
+    position: "absolute",
+    top: 65, // under hjerte-knappen
+    right: 15,
+    zIndex: 10,
+  },
+  likeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  likeCount: {
+    marginLeft: 6,
+    fontWeight: "600",
+    color: "#2C3E50",
+  },
+
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -422,4 +482,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

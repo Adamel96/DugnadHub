@@ -13,6 +13,6 @@ export async function uploadImage(uri: string): Promise<string> {
     return await getDownloadURL(storageRef);
   } catch (error) {
     console.error("❌ FEIL ved bildeopplasting:", error);
-    throw error; // send feilen videre til PostForm
+    throw error; 
   }
 }

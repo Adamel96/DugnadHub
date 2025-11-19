@@ -6,12 +6,12 @@ import React from "react";
 import { Text } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme(); // sjekker om bruker har lys/mørk modus
+  const colorScheme = useColorScheme(); 
 
-  // nederste navigasjonsmeny aka "tab bar"
+  
   return (
     <Tabs>
-      {/* Hjem-skjermen */}
+     
       <Tabs.Screen
         name="index"
         options={{
@@ -19,7 +19,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <AntDesign name="home" size={24} color={color} />
           ),
-          // Overskrift øverst i skjermen
+          
           headerTitle(props) {
             return (
               <Text
@@ -39,7 +39,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Søk-skjermen */}
+     
       <Tabs.Screen
         name="search"
         options={{
@@ -47,7 +47,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name="search" size={24} color={color} />
           ),
-          // overskrift øverst
+          
           headerTitle(props) {
             return (
               <Text
@@ -67,7 +67,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Profil-skjermen */}
+      
       <Tabs.Screen
         name="profilePage"
         options={{
