@@ -1,6 +1,6 @@
 Testbruker 👤
-email: 
-passord: 
+email: test@test.com
+passord: 123123
 
 • (Enkel) Søke- og filtreringsfunksjon: Brukere kan søke og/eller filtrere dugnader
 basert på nøkkelord som sted, kategori osv. ✅
@@ -15,7 +15,7 @@ inkludert deltakelser i tidligere, pågående og kommende dugnader, og favorittl
 
 • (Middels) Interaktiv kommunikasjon: Brukere kan vurdere arrangementer, legge igjen
 kommentarer, dele oppdateringer og vise anerkjennelse (for eksempel med likerklikk
-eller merker) for å fremme engasjement.
+eller merker) for å fremme engasjement. ✅
 
 • (Middels) Arrangementshåndtering: Hver dugnad viser total kapasitet og gjenstående
 antall frivilligplasser (for eksempel 7 av 10 plasser fylt). Tilgjengelige plasser
