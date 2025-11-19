@@ -19,15 +19,16 @@ import {
   View,
 } from "react-native";
 
+// profilside 
 export default function ProfilePage() {
   const router = useRouter();
-
   const [username, setUsername] = useState("Laster...");
   const [email, setEmail] = useState("Laster...");
   const [myDugnadCount, setMyDugnadCount] = useState(0);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [participatedCount, setParticipatedCount] = useState(0);
 
+  // hent brukerdata ved lasting av siden
   useEffect(() => {
     const loadUserData = async () => {
       const user = auth.currentUser;
@@ -35,6 +36,7 @@ export default function ProfilePage() {
 
       setEmail(user.email ?? "Ukjent e-post");
 
+      // hent brukernavn fra Firestore
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
 
@@ -51,10 +53,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
+    // Tell hvor mange dugnader brukeren har opprettet
     const q = query(
       collection(db, "dugnader"),
       where("createdByUID", "==", auth.currentUser.uid)
     );
+
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMyDugnadCount(snapshot.size);
@@ -66,6 +70,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
+    // 
     const favRef = doc(db, "favorites", auth.currentUser.uid);
     const unsubscribe = onSnapshot(favRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -95,6 +100,7 @@ export default function ProfilePage() {
     return unsubscribe;
   }, []);
 
+  // håndterer utlogging
   const handleLogout = async () => {
     await signOut(auth);
     router.replace("/auth/login");

@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+// skjerm for viste deltatte dugnader
 export default function DeltatteDugnaderScreen() {
   const [participatedPosts, setParticipatedPosts] = useState<any[]>([]);
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function DeltatteDugnaderScreen() {
       where("participants", "array-contains", auth.currentUser.uid)
     );
 
+    // realtime lytter for deltatte dugnader
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,

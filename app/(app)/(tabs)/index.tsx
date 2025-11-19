@@ -81,10 +81,10 @@ export default function HomeScreen() {
   };
 
   // realtime poster
-
   useEffect(() => {
     const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
 
+    // lytter for endringer i dugnader
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map((d) => ({
         id: d.id,
@@ -98,12 +98,11 @@ export default function HomeScreen() {
   }, []);
 
   // realtime favoritter
-
   useEffect(() => {
     if (!auth.currentUser) return;
 
     const favRef = doc(db, "favorites", auth.currentUser.uid);
-
+    //
     const unsubscribe = onSnapshot(favRef, (snapshot) => {
       if (snapshot.exists()) {
         setFavorites(snapshot.data().dugnadIds || []);
@@ -115,11 +114,13 @@ export default function HomeScreen() {
     return unsubscribe;
   }, []);
 
+  // håndterer favorittknapp
   const handleToggleFavorite = async (dugnadId: string, e: any) => {
     e.stopPropagation();
     await toggleFavorite(dugnadId);
   };
-
+  
+  // håndterer likeknapp
   const handleLike = async (postId: string, e: any) => {
     e.stopPropagation();
     if (!auth.currentUser) return;
@@ -128,7 +129,6 @@ export default function HomeScreen() {
   };
 
   // render
-
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -309,7 +309,7 @@ export default function HomeScreen() {
   );
 }
 
-// ---------------- STYLES ----------------
+// styles
 
 const styles = StyleSheet.create({
   container: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E3F2FD",
   },
 
-  // FAVORITT-KNAPP
+  // favoritt-knapp
   favoriteButton: {
     position: "absolute",
     top: 15,
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
-  // LIKE-KNAPP (NY)
+  // like-knapp
   likeWrapper: {
     position: "absolute",
     top: 65,

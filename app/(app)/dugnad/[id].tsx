@@ -86,11 +86,11 @@ export default function DugnadsDetaljer() {
         }
 
         // hent deltakerprofiler
-
         const data = snapshot.data();
         const participants = data.participants || [];
         setDugnad({ ...data, participants });
 
+        // hent profilinfo for hver deltaker
         const profiles: any[] = [];
         for (let uid of participants) {
           const userRef = doc(db, "users", uid);
@@ -132,12 +132,14 @@ export default function DugnadsDetaljer() {
 
     return unsubscribe;
   }, [user, id]);
-
+  
+  // håndterer trykk på favorittknapp
   const handleToggleFavorite = async () => {
     if (!user) return;
     await toggleFavorite(id as string, user.uid);
   };
 
+  // håndterer påmelding
   const handleJoin = async () => {
     if (!user || !dugnad) return;
 
@@ -146,6 +148,7 @@ export default function DugnadsDetaljer() {
       return;
     }
 
+    // legg til bruker i deltakerlisten
     const ref = doc(db, "dugnader", id as string);
 
     await updateDoc(ref, {
@@ -164,6 +167,7 @@ export default function DugnadsDetaljer() {
       participants: [...dugnad.participants, user.uid],
     });
 
+    // oppdater deltakerprofiler
     setParticipantProfiles([
       ...participantProfiles,
       {
@@ -174,9 +178,11 @@ export default function DugnadsDetaljer() {
     ]);
   };
 
+  // håndterer avmelding
   const handleLeave = async () => {
     if (!user || !dugnad) return;
 
+    // fjern bruker fra deltakerlisten
     const ref = doc(db, "dugnader", id as string);
 
     await updateDoc(ref, {
@@ -232,10 +238,12 @@ export default function DugnadsDetaljer() {
     return () => unsubscribe();
   }, [id]);
 
+  // legg til kommentar
   const handleAddComment = async () => {
     if (!user) return;
     if (commentText.trim().length === 0) return;
 
+    // legg til kommentar i databasen
     await addComment(id as string, {
       uid: user.uid,
       username: user.displayName || user.email || "Ukjent",

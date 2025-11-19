@@ -11,7 +11,6 @@ export default function TabLayout() {
   
   return (
     <Tabs>
-     
       <Tabs.Screen
         name="index"
         options={{

@@ -18,6 +18,7 @@ import {
   isSuccessResponse,
 } from "@react-native-google-signin/google-signin";
 
+// login-skjerm
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");

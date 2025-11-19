@@ -66,6 +66,7 @@ export default function EditDugnad() {
     load();
   }, [id]);
 
+  // datoendring fra picker
   const onChangeDate = (_e: any, selected?: Date) => {
     setShowPicker(false);
     if (selected) setDate(selected);
@@ -92,6 +93,7 @@ export default function EditDugnad() {
     return true;
   };
 
+  // lagring av endringer
   const handleSave = async () => {
     if (!validate()) return;
 

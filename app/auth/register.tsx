@@ -13,6 +13,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
+// registreringsskjerm
 export default function RegisterScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
