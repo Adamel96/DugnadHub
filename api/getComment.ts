@@ -3,7 +3,7 @@
 import { db } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-export async function getComments(postId: string) {
+export async function getComment(postId: string) {
   try {
     const snap = await getDoc(doc(db, "dugnader", postId));
 
