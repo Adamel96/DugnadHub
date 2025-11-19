@@ -12,25 +12,26 @@ import {
   View,
 } from "react-native";
 
-// firebase-funksjoner
-
 import PostForm from "@/components/PostForm";
 import { auth, db } from "@/firebase";
+
+// 🔥 Henter API-funksjoner
+import { getPosts } from "@/api/getPosts";
+
 import {
   arrayRemove,
   arrayUnion,
-  collection,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
-  orderBy,
-  query,
   setDoc,
   updateDoc,
+  collection,
+  query,
+  orderBy,
 } from "firebase/firestore";
 
-// favorittlogikk
+// ---------------- FAVORITTLOGIKK ----------------
 
 const toggleFavorite = async (dugnadId: string) => {
   if (!auth.currentUser) return false;
@@ -39,50 +40,38 @@ const toggleFavorite = async (dugnadId: string) => {
   const favSnap = await getDoc(favRef);
 
   if (!favSnap.exists()) {
-    await setDoc(favRef, {
-      dugnadIds: [dugnadId],
-    });
+    await setDoc(favRef, { dugnadIds: [dugnadId] });
     return true;
-  } else {
-    const currentFavs = favSnap.data().dugnadIds || [];
-    const isFavorite = currentFavs.includes(dugnadId);
+  }
 
-    if (isFavorite) {
-      await updateDoc(favRef, {
-        dugnadIds: arrayRemove(dugnadId),
-      });
-      return false;
-    } else {
-      await updateDoc(favRef, {
-        dugnadIds: arrayUnion(dugnadId),
-      });
-      return true;
-    }
+  const currentFavs = favSnap.data().dugnadIds || [];
+  const isFavorite = currentFavs.includes(dugnadId);
+
+  if (isFavorite) {
+    await updateDoc(favRef, { dugnadIds: arrayRemove(dugnadId) });
+    return false;
+  } else {
+    await updateDoc(favRef, { dugnadIds: arrayUnion(dugnadId) });
+    return true;
   }
 };
+
+// ---------------- KOMPONENT ----------------
 
 export default function HomeScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
   const router = useRouter();
 
-  // pull to refresh
+  // ---------------- LAST INN POSTER ----------------
 
   const loadPosts = async () => {
-    const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-
-    const list = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
+    const list = await getPosts();
     setPosts(list);
   };
-
-  // kalles når brukeren trekker ned for å oppdatere
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -90,14 +79,15 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  // Posts listener
+  // ---------------- REALTIME LISTENER FOR POSTER ----------------
 
   useEffect(() => {
     const q = query(collection(db, "dugnader"), orderBy("createdAt", "desc"));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const list = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       }));
 
       setPosts(list);
@@ -106,12 +96,13 @@ export default function HomeScreen() {
     return unsubscribe;
   }, []);
 
-  //  Favorite listener
+  // ---------------- REALTIME FAVORITTER ----------------
 
   useEffect(() => {
     if (!auth.currentUser) return;
 
     const favRef = doc(db, "favorites", auth.currentUser.uid);
+
     const unsubscribe = onSnapshot(favRef, (snapshot) => {
       if (snapshot.exists()) {
         setFavorites(snapshot.data().dugnadIds || []);
@@ -128,14 +119,14 @@ export default function HomeScreen() {
     await toggleFavorite(dugnadId);
   };
 
+  // ---------------- RENDER ----------------
+
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
           title: "Hjem",
-          headerStyle: {
-            backgroundColor: "#fff",
-          },
+          headerStyle: { backgroundColor: "#fff" },
           headerShadowVisible: true,
           headerTitleStyle: {
             fontSize: 24,
@@ -153,12 +144,8 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Modal for å opprette ny dugnad */}
-      <Modal
-        visible={isModalOpen}
-        animationType="slide"
-        onRequestClose={() => setIsModalOpen(false)}
-      >
+      {/* MODAL FOR NY POST */}
+      <Modal visible={isModalOpen} animationType="slide">
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Opprett dugnad</Text>
@@ -167,15 +154,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <PostForm
-            onSave={() => {
-              setIsModalOpen(false);
-            }}
-          />
+          <PostForm onSave={() => setIsModalOpen(false)} />
         </View>
       </Modal>
 
-      {/* Hovedliste med dugnader + pull to refresh */}
+      {/* LISTE MED POSTER */}
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -183,7 +166,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.postList}
         showsVerticalScrollIndicator={false}
       >
-        {/* Vis hvis ingen dugnader finnes */}
         {posts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📋</Text>
@@ -231,6 +213,7 @@ export default function HomeScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
                   <Text style={styles.title}>{post.title}</Text>
+
                   <View style={styles.metaInfo}>
                     <Text style={styles.metaText}>
                       📅{" "}
@@ -240,7 +223,9 @@ export default function HomeScreen() {
                         year: "numeric",
                       })}
                     </Text>
+
                     <Text style={styles.metaDot}>•</Text>
+
                     <Text style={styles.metaText}>
                       ⏰{" "}
                       {new Date(post.date).toLocaleTimeString("nb-NO", {
@@ -250,10 +235,10 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                 </View>
+
                 <AntDesign name="right" size={20} color="#BDC3C7" />
               </View>
 
-              {/* Beskrivelse + detaljer */}
               <View style={styles.cardContent}>
                 <Text style={styles.description} numberOfLines={2}>
                   {post.description}
@@ -266,6 +251,7 @@ export default function HomeScreen() {
                       {post.task}
                     </Text>
                   </View>
+
                   <View style={styles.detailItem}>
                     <Text style={styles.detailIcon}>👥</Text>
                     <Text style={styles.detailText}>
@@ -436,3 +422,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
