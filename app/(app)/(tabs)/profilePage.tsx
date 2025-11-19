@@ -22,21 +22,19 @@ import {
 export default function ProfilePage() {
   const router = useRouter();
 
-  // states for å vise brukerdata og stats
   const [username, setUsername] = useState("Laster...");
   const [email, setEmail] = useState("Laster...");
   const [myDugnadCount, setMyDugnadCount] = useState(0);
   const [favoriteCount, setFavoriteCount] = useState(0);
+  const [participatedCount, setParticipatedCount] = useState(0);
 
   useEffect(() => {
     const loadUserData = async () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      // e-post fra Firebase Auth
       setEmail(user.email ?? "Ukjent e-post");
 
-      // brukernavn fra Firestore
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
 
@@ -50,7 +48,6 @@ export default function ProfilePage() {
     loadUserData();
   }, []);
 
-  // teller hvor mange dugnader brukeren har opprettet
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -66,7 +63,6 @@ export default function ProfilePage() {
     return unsubscribe;
   }, []);
 
-  // teller hvor mange favoritter brukeren har
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -83,7 +79,22 @@ export default function ProfilePage() {
     return unsubscribe;
   }, []);
 
-  // logger ut bruker og sender til login-skjermen
+  // Tell hvor mange dugnader brukeren deltar i
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const q = query(
+      collection(db, "dugnader"),
+      where("participants", "array-contains", auth.currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setParticipatedCount(snapshot.size);
+    });
+
+    return unsubscribe;
+  }, []);
+
   const handleLogout = async () => {
     await signOut(auth);
     router.replace("/auth/login");
@@ -105,7 +116,14 @@ export default function ProfilePage() {
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{myDugnadCount}</Text>
-          <Text style={styles.statLabel}>Dugnader</Text>
+          <Text style={styles.statLabel}>Opprettet</Text>
+        </View>
+
+        <View style={styles.statDivider} />
+
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{participatedCount}</Text>
+          <Text style={styles.statLabel}>Deltatt</Text>
         </View>
 
         <View style={styles.statDivider} />
@@ -113,13 +131,6 @@ export default function ProfilePage() {
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{favoriteCount}</Text>
           <Text style={styles.statLabel}>Favoritter</Text>
-        </View>
-
-        <View style={styles.statDivider} />
-
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>189</Text>
-          <Text style={styles.statLabel}>Følger</Text>
         </View>
       </View>
 
@@ -136,6 +147,15 @@ export default function ProfilePage() {
         >
           <Text style={styles.menuIcon}>📋</Text>
           <Text style={styles.menuText}>Mine Dugnader</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/(app)/deltatte_dugnader")}
+        >
+          <Text style={styles.menuIcon}>✅</Text>
+          <Text style={styles.menuText}>Deltatte Dugnader</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
