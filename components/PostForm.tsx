@@ -2,6 +2,7 @@ import { EvilIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -14,13 +15,14 @@ import {
 import SelectImageModal from "./SelectImageModal";
 import { useAuth } from "@/hooks/useAuth";
 
-// 👇 API-er
+// api
 import { uploadImage } from "@/api/uploadImage";
 import { createPost } from "@/api/createPost";
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
   const { user } = useAuth();
 
+  // lokalt state for alle inputfelt
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -31,29 +33,65 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
+  // datoendring fra picker
   const onChange = (_event: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (selectedDate) setDate(selectedDate);
   };
 
+  // enkel validering av alle felt
+  const validate = () => {
+    if (!title.trim()) {
+      Alert.alert("Mangler tittel", "Du må skrive en tittel.");
+      return false;
+    }
+
+    if (!description.trim()) {
+      Alert.alert("Mangler beskrivelse", "Du må skrive en beskrivelse.");
+      return false;
+    }
+
+    if (!task.trim()) {
+      Alert.alert("Mangler oppgave", "Du må skrive hva som skal gjøres.");
+      return false;
+    }
+
+    if (!volunteerLimit.trim() || Number(volunteerLimit) <= 0) {
+      Alert.alert("Ugyldig verdi", "Du må skrive et gyldig antall frivillige.");
+      return false;
+    }
+
+    if (!image) {
+      Alert.alert("Mangler bilde", "Du må legge til et bilde.");
+      return false;
+    }
+
+    return true;
+  };
+
+  // lagring av dugnad
   const handleSave = async () => {
     if (!user) {
-      console.log("❌ Ingen innlogget bruker.");
+      Alert.alert("Feil", "Du må være logget inn for å opprette en dugnad.");
       return;
     }
 
+    // stopp hvis validering feiler
+    if (!validate()) return;
+
     let uploadedUrl: string | null = null;
 
-    // 📸 LAST OPP BILDE HVIS DET FINNES
+    // opplasting av bilde
     if (image) {
       try {
         uploadedUrl = await uploadImage(image);
       } catch (e) {
-        console.log("❌ Kunne ikke laste opp bilde:", e);
+        Alert.alert("Feil", "Kunne ikke laste opp bilde.");
+        return;
       }
     }
 
-    // 📝 LAG POSTEN
+    // opprett dugnaden
     try {
       await createPost({
         title,
@@ -65,18 +103,18 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
 
         createdByUID: user.uid,
         createdByEmail: user.email,
-        createdByUsername: user.email?.split("@")[0] || "Ukjent", // fallback
+        createdByUsername: user.email?.split("@")[0] || "ukjent",
       });
 
-      onSave(); // lukk modal
+      onSave();
     } catch (e) {
-      console.log("❌ Kunne ikke opprette post:", e);
+      Alert.alert("Feil", "Kunne ikke opprette dugnaden.");
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Bildevelger */}
+      {/* bildevelger */}
       <Modal visible={isCameraOpen} animationType="slide">
         <SelectImageModal
           closeModal={() => setIsCameraOpen(false)}
@@ -95,7 +133,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         )}
       </Pressable>
 
-      {/* Inputs */}
+      {/* inputfelt */}
       <TextInput
         style={styles.input}
         placeholder="Tittel"
@@ -126,7 +164,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         onChangeText={setVolunteerLimit}
       />
 
-      {/* Dato */}
+      {/* dato */}
       <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
         <EvilIcons name="calendar" size={28} color="gray" />
         <Text style={{ marginLeft: 8 }}>{date.toLocaleString()}</Text>
@@ -136,7 +174,7 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
         <DateTimePicker value={date} mode="datetime" onChange={onChange} />
       )}
 
-      {/* Lagre */}
+      {/* lagre */}
       <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Lagre</Text>
       </Pressable>
