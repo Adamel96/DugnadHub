@@ -28,6 +28,7 @@ import {
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { addComment } from "@/api/addComment";
 
+// hjelpefunksjon for å legge til/fjerne favoritt
 const toggleFavorite = async (dugnadId: string, userId: string) => {
   if (!userId) return false;
 
@@ -57,21 +58,22 @@ const toggleFavorite = async (dugnadId: string, userId: string) => {
   }
 };
 
+// hovedkomponent
 export default function DugnadsDetaljer() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
 
+  // state
   const [dugnad, setDugnad] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-
   const [participantProfiles, setParticipantProfiles] = useState<any[]>([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
 
+  // hent dugnaddata ved lasting av komponent
   useEffect(() => {
     const fetchDugnad = async () => {
       try {
@@ -85,14 +87,12 @@ export default function DugnadsDetaljer() {
 
         const data = snapshot.data();
         const participants = data.participants || [];
-
         setDugnad({ ...data, participants });
 
         const profiles: any[] = [];
         for (let uid of participants) {
           const userRef = doc(db, "users", uid);
           const userSnap = await getDoc(userRef);
-
           if (userSnap.exists()) {
             profiles.push({
               uid,
@@ -134,11 +134,9 @@ export default function DugnadsDetaljer() {
     await toggleFavorite(id as string, user.uid);
   };
 
-  // 🔥 PÅMELDING MED FULL-SJEKK
   const handleJoin = async () => {
     if (!user || !dugnad) return;
 
-    // Sjekk om dugnad er full
     if (participantCount >= dugnad.volunteerLimit) {
       Alert.alert("Dugnad full", "Denne dugnaden har nok deltakere.");
       return;
@@ -152,7 +150,6 @@ export default function DugnadsDetaljer() {
 
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
-
     const username = userSnap.exists()
       ? userSnap.data().username
       : "Ukjent bruker";
@@ -183,7 +180,9 @@ export default function DugnadsDetaljer() {
 
     setDugnad({
       ...dugnad,
-      participants: dugnad.participants.filter((uid: string) => uid !== user.uid),
+      participants: dugnad.participants.filter(
+        (uid: string) => uid !== user.uid
+      ),
     });
 
     setParticipantProfiles(
@@ -209,21 +208,19 @@ export default function DugnadsDetaljer() {
     );
   };
 
-  const isOwner = dugnad?.createdByUID === user?.uid;
+  const isOwner = dugnad?.createdByUID === user?.uid; // sjekker om dette er din dugnad
   const isParticipant = dugnad?.participants?.includes(user?.uid);
   const participantCount = dugnad?.participants?.length || 0;
-  const isFull = participantCount >= dugnad?.volunteerLimit; // 🔥 FULL-SJEKK
+  const isFull = participantCount >= dugnad?.volunteerLimit;
 
   useEffect(() => {
     const ref = doc(db, "dugnader", id as string);
-
     const unsubscribe = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setComments(data.comments || []);
       }
     });
-
     return () => unsubscribe();
   }, [id]);
 
@@ -280,18 +277,22 @@ export default function DugnadsDetaljer() {
       )}
 
       <Text style={styles.title}>{dugnad.title}</Text>
-      <Text style={styles.createdBy}>Opprettet av: {dugnad.createdByUsername}</Text>
+      <Text style={styles.createdBy}>
+        Opprettet av: {dugnad.createdByUsername}
+      </Text>
 
-      <Pressable onPress={() => setIsPopupOpen(true)} style={styles.participantBox}>
+      <Pressable
+        onPress={() => setIsPopupOpen(true)}
+        style={styles.participantBox}
+      >
         <Text style={styles.participantText}>
-          👥 {participantCount} av {dugnad.volunteerLimit} påmeldt
+          {participantCount} av {dugnad.volunteerLimit} påmeldt
         </Text>
       </Pressable>
 
-      {/* 🔥 PÅMELDINGSKNAPP MED FULL-SJEKK */}
       {!isParticipant ? (
-        <Pressable 
-          style={[styles.joinButton, isFull && styles.disabledButton]} 
+        <Pressable
+          style={[styles.joinButton, isFull && styles.disabledButton]}
           onPress={handleJoin}
           disabled={isFull}
         >
@@ -306,8 +307,22 @@ export default function DugnadsDetaljer() {
       )}
 
       {isOwner && (
+        <Pressable
+          style={styles.editButton}
+          onPress={() =>
+            router.push({
+              pathname: "/dugnad/edit",
+              params: { id },
+            })
+          }
+        >
+          <Text style={styles.editText}>Rediger dugnad</Text>
+        </Pressable>
+      )}
+
+      {isOwner && (
         <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteText}>🗑 Slett dugnad</Text>
+          <Text style={styles.deleteText}>Slett dugnad</Text>
         </Pressable>
       )}
 
@@ -390,9 +405,7 @@ const styles = StyleSheet.create({
   },
   backButton: {},
   backText: { fontSize: 18, color: "#007AFF", fontWeight: "500" },
-  favoriteButton: {
-    padding: 8,
-  },
+  favoriteButton: { padding: 8 },
   image: {
     width: "100%",
     height: 250,
@@ -447,6 +460,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     fontSize: 16,
+  },
+  editButton: {
+    backgroundColor: "#2980B9",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  editText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 17,
   },
   deleteButton: {
     backgroundColor: "#E74C3C",
