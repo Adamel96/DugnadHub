@@ -183,120 +183,126 @@ export default function HomeScreen() {
             </Text>
           </View>
         ) : (
-          posts.map((post) => (
-            <TouchableOpacity
-              key={post.id}
-              style={styles.card}
-              activeOpacity={0.7}
-              onPress={() =>
-                router.push({
-                  pathname: "/dugnad/[id]",
-                  params: { id: post.id },
-                })
-              }
-            >
-              {/* BILDE */}
-              {post.image && (
-                <Image
-                  source={{ uri: post.image }}
-                  style={styles.cardImage}
-                  resizeMode="cover"
-                />
-              )}
-
-              {/* FAVORITT KNAPP */}
+          posts.map((post) => {
+            const isFull = (post.participants?.length || 0) >= post.volunteerLimit;
+            
+            return (
               <TouchableOpacity
-                style={styles.favoriteButton}
-                onPress={(e) => handleToggleFavorite(post.id, e)}
+                key={post.id}
+                style={styles.card}
+                activeOpacity={0.7}
+                onPress={() =>
+                  router.push({
+                    pathname: "/dugnad/[id]",
+                    params: { id: post.id },
+                  })
+                }
               >
-                <AntDesign
-                  name="heart"
-                  size={24}
-                  color={
-                    favorites.includes(post.id)
-                      ? "#E74C3C"
-                      : "rgba(255, 255, 255, 0.5)"
-                  }
-                />
-              </TouchableOpacity>
+                {/* BILDE */}
+                {post.image && (
+                  <Image
+                    source={{ uri: post.image }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+                )}
 
-              {/* LIKE KNAPP – NY PLASSERING */}
-              <View style={styles.likeWrapper}>
+                {/* FAVORITT KNAPP */}
                 <TouchableOpacity
-                  style={styles.likeButton}
-                  onPress={(e) => handleLike(post.id, e)}
+                  style={styles.favoriteButton}
+                  onPress={(e) => handleToggleFavorite(post.id, e)}
                 >
                   <AntDesign
-                    name="like"
-                    size={18}
+                    name="heart"
+                    size={24}
                     color={
-                      post.likes?.includes(auth.currentUser?.uid)
-                        ? "#3498DB"
-                        : "#7F8C8D"
+                      favorites.includes(post.id)
+                        ? "#E74C3C"
+                        : "rgba(255, 255, 255, 0.5)"
                     }
                   />
-                  <Text style={styles.likeCount}>{post.likes?.length || 0}</Text>
                 </TouchableOpacity>
-              </View>
 
-              {/* HEADER + INFO */}
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderText}>
-                  <Text style={styles.title}>{post.title}</Text>
+                {/* LIKE KNAPP – NY PLASSERING */}
+                <View style={styles.likeWrapper}>
+                  <TouchableOpacity
+                    style={styles.likeButton}
+                    onPress={(e) => handleLike(post.id, e)}
+                  >
+                    <AntDesign
+                      name="like"
+                      size={18}
+                      color={
+                        post.likes?.includes(auth.currentUser?.uid)
+                          ? "#3498DB"
+                          : "#7F8C8D"
+                      }
+                    />
+                    <Text style={styles.likeCount}>{post.likes?.length || 0}</Text>
+                  </TouchableOpacity>
+                </View>
 
-                  <View style={styles.metaInfo}>
-                    <Text style={styles.metaText}>
-                      📅{" "}
-                      {new Date(post.date).toLocaleDateString("nb-NO", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </Text>
+                {/* HEADER + INFO */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardHeaderText}>
+                    <Text style={styles.title}>{post.title}</Text>
 
-                    <Text style={styles.metaDot}>•</Text>
+                    <View style={styles.metaInfo}>
+                      <Text style={styles.metaText}>
+                        📅{" "}
+                        {new Date(post.date).toLocaleDateString("nb-NO", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </Text>
 
-                    <Text style={styles.metaText}>
-                      ⏰{" "}
-                      {new Date(post.date).toLocaleTimeString("nb-NO", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
+                      <Text style={styles.metaDot}>•</Text>
+
+                      <Text style={styles.metaText}>
+                        ⏰{" "}
+                        {new Date(post.date).toLocaleTimeString("nb-NO", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <AntDesign name="right" size={20} color="#BDC3C7" />
+                </View>
+
+                {/* BESKRIVELSE */}
+                <View style={styles.cardContent}>
+                  <Text style={styles.description} numberOfLines={2}>
+                    {post.description}
+                  </Text>
+
+                  <View style={styles.detailsContainer}>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailIcon}>📋</Text>
+                      <Text style={styles.detailText} numberOfLines={1}>
+                        {post.task}
+                      </Text>
+                    </View>
+
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailIcon}>👥</Text>
+                      <Text style={styles.detailText}>
+                        {post.volunteerLimit} frivillige
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                <AntDesign name="right" size={20} color="#BDC3C7" />
-              </View>
-
-              {/* BESKRIVELSE */}
-              <View style={styles.cardContent}>
-                <Text style={styles.description} numberOfLines={2}>
-                  {post.description}
-                </Text>
-
-                <View style={styles.detailsContainer}>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailIcon}>📋</Text>
-                    <Text style={styles.detailText} numberOfLines={1}>
-                      {post.task}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailIcon}>👥</Text>
-                    <Text style={styles.detailText}>
-                      {post.volunteerLimit} frivillige
-                    </Text>
-                  </View>
+                <View style={[styles.statusBadge, isFull && styles.fullBadge]}>
+                  <Text style={styles.statusText}>
+                    {isFull ? "Fullt - ingen ledige plasser" : "Åpen for påmelding"}
+                  </Text>
                 </View>
-              </View>
-
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Åpen for påmelding</Text>
-              </View>
-            </TouchableOpacity>
-          ))
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -391,7 +397,7 @@ const styles = StyleSheet.create({
   // LIKE-KNAPP (NY)
   likeWrapper: {
     position: "absolute",
-    top: 65, // under hjerte-knappen
+    top: 65,
     right: 15,
     zIndex: 10,
   },
@@ -475,6 +481,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#2ECC71",
     paddingVertical: 10,
     alignItems: "center",
+  },
+  fullBadge: {
+    backgroundColor: "#E74C3C",
   },
   statusText: {
     color: "#fff",
