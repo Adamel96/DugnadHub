@@ -2,6 +2,7 @@ import { EvilIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -23,7 +24,7 @@ import {
 } from "firebase/firestore";
 
 export default function PostForm({ onSave }: { onSave: () => void }) {
-  const { user } = useAuth(); // 🔥 Vi har kun user, ikke profil
+  const { user } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -39,18 +40,56 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
     if (selectedDate) setDate(selectedDate);
   };
 
+
+  // Validering
+
+  const validate = () => {
+    if (!title.trim()) {
+      Alert.alert("Manglende tittel", "Du må skrive inne en tittel.");
+      return false;
+    }
+
+    if (!description.trim()) {
+      Alert.alert("Manglende beskrivelse", "Du må skrive en beskrivelse.");
+      return false;
+    }
+
+    if (!task.trim()) {
+      Alert.alert("Manglende oppgave", "Du må skrive hva som skal gjøres.");
+      return false;
+    }
+
+    if (!volunteerLimit.trim() || Number(volunteerLimit) <= 0) {
+      Alert.alert(
+        "Ugyldig antall",
+        "Du må skrive inn hvor mange frivillige som trengs."
+      );
+      return false;
+    }
+
+    if (!image) {
+      Alert.alert("Mangler bilde", "Du må legge til et bilde.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSave = async () => {
     if (!user) {
-      console.log("❌ Ingen innlogget bruker.");
+      Alert.alert("Feil", "Du må være logget inn for å opprette en dugnad.");
       return;
     }
+
+    // Valider før lagring
+    if (!validate()) return;
 
     // Hent brukernavn fra Firestore
     const ref = doc(db, "users", user.uid);
     const snap = await getDoc(ref);
     const username = snap.exists() ? snap.data().username : "Ukjent bruker";
 
-    // Dette lagres i Firestore
+    // Dokumentet som skal lagres
     const docData = {
       title,
       description,
@@ -59,17 +98,14 @@ export default function PostForm({ onSave }: { onSave: () => void }) {
       date: date.toISOString(),
       image,
       createdAt: serverTimestamp(),
-
-      // viktig info
       createdByUID: user.uid,
       createdByEmail: user.email,
       createdByUsername: username,
-
       participants: [],
     };
 
     await addDoc(collection(db, "dugnader"), docData);
-    onSave(); // lukk modal
+    onSave();
   };
 
   return (
