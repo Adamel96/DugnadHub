@@ -1,11 +1,14 @@
-// firebase config (bruk din eksisterende)
-const firebaseConfig = {
-    apiKey: "AIzaSyA81IIHcX6ZCONRAifIj1ESpCwfjS5ZB8w",
-    authDomain: "dugnadhub-5e674.firebaseapp.com",
-    projectId: "dugnadhub-5e674",
-    storageBucket: "dugnadhub-5e674.firebasestorage.app",
-    messagingSenderId: "520017838610",
-    appId: "1:520017838610:web:8892320d7ce73e9ee0cecb",
-  };
+// firebaseEnv.js
+// Firebase-konfigurasjon som bruker miljøvariabler fra .env
+// Dette sikrer at API-nøkler ikke hardkodes i koden
 
-  export default firebaseConfig;
+const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+};
+
+export default firebaseConfig;
